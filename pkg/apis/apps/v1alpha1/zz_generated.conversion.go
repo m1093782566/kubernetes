@@ -141,7 +141,7 @@ func Convert_apps_PetSetList_To_v1alpha1_PetSetList(in *apps.PetSetList, out *Pe
 
 func autoConvert_v1alpha1_PetSetStatus_To_apps_PetSetStatus(in *PetSetStatus, out *apps.PetSetStatus, s conversion.Scope) error {
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Replicas = int(in.Replicas)
+	out.Replicas = in.Replicas
 	return nil
 }
 
@@ -151,7 +151,7 @@ func Convert_v1alpha1_PetSetStatus_To_apps_PetSetStatus(in *PetSetStatus, out *a
 
 func autoConvert_apps_PetSetStatus_To_v1alpha1_PetSetStatus(in *apps.PetSetStatus, out *PetSetStatus, s conversion.Scope) error {
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Replicas = int32(in.Replicas)
+	out.Replicas = in.Replicas
 	return nil
 }
 

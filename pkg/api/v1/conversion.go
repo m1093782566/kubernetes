@@ -381,6 +381,7 @@ func Convert_api_ReplicationControllerSpec_To_v1_ReplicationControllerSpec(in *a
 }
 
 func Convert_v1_ReplicationControllerSpec_To_api_ReplicationControllerSpec(in *ReplicationControllerSpec, out *api.ReplicationControllerSpec, s conversion.Scope) error {
+	// TODO: Test in.Replicas != nil
 	out.Replicas = *in.Replicas
 	out.Selector = in.Selector
 	if in.Template != nil {

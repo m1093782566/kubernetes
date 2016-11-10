@@ -499,20 +499,8 @@ var _ = framework.KubeDescribe("Services", func() {
 		framework.Logf("clusterip-reject-test cluster ip: %s", serviceIp)
 		// no endpoints
 
-		hosts, err := framework.NodeSSHHosts(cs)
-		Expect(err).NotTo(HaveOccurred())
-		if len(hosts) == 0 {
-			framework.Failf("No ssh-able nodes")
-		}
-		host := hosts[0]
-
-		By("verifying REJECT in iptables nat table")
-		cmd := fmt.Sprintf(`iptables-save -t filter | grep REJECT | grep '\s--dport %d\s' | grep '\s-d %s/32\s'`, servicePort, serviceIp)
-		result, err := framework.SSH(cmd, host, framework.TestContext.Provider)
-		if err != nil || result.Code != 0 {
-			framework.LogSSHResult(result)
-			framework.Failf("couldn't find REJECT in iptables filter table: %v", err)
-		}
+		By("verifying visit service that has no endpoints connection refused")
+		testConnectionRefused(f, cs, ns, serviceIp, servicePort)
 	})
 
 	It("should reject NodePort type service that has no endpoints", func() {
@@ -2839,4 +2827,36 @@ func describeSvc(ns string) {
 	desc, _ := framework.RunKubectl(
 		"describe", "svc", fmt.Sprintf("--namespace=%v", ns))
 	framework.Logf(desc)
+}
+
+func testConnectionRefused(f *framework.Framework, c clientset.Interface, ns, ip string, port int) {
+	framework.Logf("Creating the exec pod")
+	execPodName := createExecPodOrFail(f.ClientSet, ns, fmt.Sprintf("execpod-connection-refused"))
+	defer func() {
+		framework.Logf("Cleaning up the exec pod")
+		err := c.Core().Pods(ns).Delete(execPodName, nil)
+		Expect(err).NotTo(HaveOccurred())
+	}()
+	execPod, err := f.ClientSet.Core().Pods(ns).Get(execPodName)
+	ExpectNoError(err)
+
+	var stdout string
+	timeout := 2 * time.Minute
+	framework.Logf("Waiting upto %v wget %s:%d", timeout, ip, port)
+	cmd := fmt.Sprintf(`wget -T 30 -qO- %s:%d | grep 'Connection refused'`, ip, port)
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2) {
+		stdout, err = framework.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
+		if err != nil {
+			framework.Logf("got err: %v, retry until timeout", err)
+			continue
+		}
+		// Need to check output because wget -q might omit the error.
+		if strings.TrimSpace(stdout) == "" {
+			framework.Logf("got empty stdout, retry until timeout")
+			continue
+		}
+		break
+	}
+
+	ExpectNoError(err)
 }

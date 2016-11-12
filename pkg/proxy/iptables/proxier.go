@@ -940,7 +940,11 @@ func (proxier *Proxier) syncProxyRules() {
 		if len(proxier.clusterCIDR) > 0 {
 			writeLine(natRules, append(args, "! -s", proxier.clusterCIDR, "-j", string(KubeMarkMasqChain))...)
 		}
-		writeLine(natRules, append(args, "-j", string(svcChain))...)
+		// Don't build rules in nat table for clusterIP service
+		// In case of dead destination.
+		if len(proxier.endpointsMap[svcName]) != 0 {
+			writeLine(natRules, append(args, "-j", string(svcChain))...)
+		}
 
 		// Capture externalIPs.
 		for _, externalIP := range svcInfo.externalIPs {

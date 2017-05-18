@@ -92,6 +92,8 @@ spec:
       readOnly: false
     - mountPath: /run/xtables.lock
       name: iptableslock
+    - mountPath: /lib/modules 
+      name: kernel-modules 
       readOnly: false
   volumes:
   - hostPath:
@@ -112,3 +114,6 @@ spec:
   - hostPath:
       path: /run/xtables.lock
     name: iptableslock
+  - hostPath:
+      path: /lib/modules
+    name: kernel-modules 

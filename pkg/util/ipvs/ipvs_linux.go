@@ -129,16 +129,6 @@ func (runner *runner) InitIpvsInterface() error {
 	return nil
 }
 
-func (runner *runner) setSystemFlagInt(sysControl string, value int) error {
-	if val, err := runner.sysctl.GetSysctl(sysControl); err == nil && val != value {
-		runner.sysctl.SetSysctl(sysControl, value)
-	} else if err != nil {
-		glog.Errorf("Error: System control flag [%s] cannot be set", sysControl)
-		return err
-	}
-	return nil
-}
-
 func (runner *runner) CheckAliasDevice(aliasDev string) error {
 	_, err := net.InterfaceByName(aliasDev)
 	if err == nil {

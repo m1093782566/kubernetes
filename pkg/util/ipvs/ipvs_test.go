@@ -1,3 +1,5 @@
+// +build linux
+
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -14,11 +16,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//----------------------------------
+//HOW TO RUN TEST: go test -ldflags "-X k8s.io/kubernetes/pkg/util/ipvs.isManualUser=true" -v ./pkg/util/ipvs/
+//----------------------------------
+
 package ipvs
 
 import (
 	_ "fmt"
 	"net"
+	"os/user"
 	"reflect"
 	"syscall"
 	"testing"
@@ -28,10 +35,39 @@ import (
 	"k8s.io/kubernetes/pkg/util/exec"
 )
 
-func TestAlias(t *testing.T) {
+var isManualUser string
+
+//canRunTest run the test only if the user is root or we are able to initalize IPVS kernel module, otherwise we skip it
+func canRunTest(t *testing.T) Interface {
+
+	if isManualUser != "true" {
+		t.Skipf("Can be run only manually, rerun as $go test -ldflags \"-X k8s.io/kubernetes/pkg/util/ipvs.isManualUser=true\" -v ./pkg/util/ipvs/")
+	}
+
+	curuser, err := user.Current()
+	if err != nil {
+		t.Errorf("Unable to get current user %v", err)
+	}
+	if curuser.Name != "root" {
+		t.Skipf("Not a Root User Skipping")
+	}
+
 	execer := exec.New()
 	dbus := dbus.New()
 	run := New(execer, dbus)
+	err = run.InitIpvsInterface()
+	if err != nil {
+		t.Skipf("Unnable to initalize ipvs. Skipping the tests", err)
+	}
+
+	return run
+
+}
+
+func TestAlias(t *testing.T) {
+
+	run := canRunTest(t)
+
 	defer run.Destroy()
 	err := run.CreateAliasDevice(AliasDevice)
 	if err != nil {
@@ -83,9 +119,8 @@ func TestAlias(t *testing.T) {
 }
 
 func deleteAliasDevice(t *testing.T) {
-	execer := exec.New()
-	dbus := dbus.New()
-	run := New(execer, dbus)
+
+	run := canRunTest(t)
 	defer run.Destroy()
 	err := run.DeleteAliasDevice(AliasDevice)
 	if err != nil {
@@ -188,6 +223,9 @@ var ServiceTests = []struct {
 }
 
 func TestStringToProtocolNumber(t *testing.T) {
+
+	canRunTest(t)
+
 	for _, test := range ServiceTests {
 		got := ToProtocolNumber(test.service.Protocol)
 		if got != test.ipvsService.Protocol {
@@ -208,6 +246,9 @@ func TestProtocolNumberToString(t *testing.T) {
 }
 
 func TestIPVSServiceToService(t *testing.T) {
+
+	canRunTest(t)
+
 	for _, test := range ServiceTests {
 		got, err := toService(&test.ipvsService)
 		if err != nil {
@@ -316,6 +357,9 @@ var IPVSServiceTests = []struct {
 }
 
 func TestServiceToIPVSService(t *testing.T) {
+
+	canRunTest(t)
+
 	for _, test := range IPVSServiceTests {
 		got := NewIpvsService(&test.service)
 
@@ -441,6 +485,8 @@ var ServiceEqualtest = []struct {
 }
 
 func TestEqual(t *testing.T) {
+	canRunTest(t)
+
 	equal := ServiceEqualtest[0].svcA.Equal(&ServiceEqualtest[0].svcB)
 	if !equal {
 		t.Errorf("expect the two services same")
@@ -484,6 +530,9 @@ var DestinationTests = []struct {
 }
 
 func TestIPVSDestinationToDestination(t *testing.T) {
+
+	canRunTest(t)
+
 	for _, test := range DestinationTests {
 		got, err := toDestination(&test.ipvsDestination)
 		if err != nil {
@@ -497,6 +546,8 @@ func TestIPVSDestinationToDestination(t *testing.T) {
 }
 
 func TestDestinationToIPVSDestination(t *testing.T) {
+	canRunTest(t)
+
 	for _, test := range DestinationTests {
 		got := NewIPVSDestination(&test.destination)
 		if !reflect.DeepEqual(*got, test.ipvsDestination) {
@@ -521,6 +572,8 @@ var IPToIntTests = []struct {
 }
 
 func TestIPToInt(t *testing.T) {
+	canRunTest(t)
+
 	got := IPtoInt(IPToIntTests[0].ip)
 	if got != IPToIntTests[0].num {
 		t.Errorf("IPtoInt() failed - got %#v, want %#v",
@@ -539,7 +592,7 @@ func TestIPToInt(t *testing.T) {
 }
 
 var ServiceFuncTests = []Service{
-	Service{
+	{
 		Address:   net.ParseIP("10.109.22.11"),
 		Protocol:  "TCP",
 		Port:      13242,
@@ -547,7 +600,7 @@ var ServiceFuncTests = []Service{
 		Flags:     0,
 		Timeout:   0,
 	},
-	Service{
+	{
 		Address:   net.ParseIP("2012::beef"),
 		Protocol:  "UDP",
 		Port:      33434,
@@ -555,7 +608,7 @@ var ServiceFuncTests = []Service{
 		Flags:     1,
 		Timeout:   100,
 	},
-	Service{
+	{
 		Address:   net.ParseIP("10.108.23.44"),
 		Protocol:  "UDP",
 		Port:      12345,
@@ -602,14 +655,10 @@ func checkservice(t *testing.T, i Interface, s *Service, check bool) {
 }
 
 func TestService(t *testing.T) {
-	execer := exec.New()
-	dbus := dbus.New()
-	run := New(execer, dbus)
-	err := run.InitIpvsInterface()
-	if err != nil {
-		t.Errorf("expected init ipvs interface success, got %v", err)
-	}
+
+	run := canRunTest(t)
 	defer run.Destroy()
+
 	for _, svc := range ServiceFuncTests {
 		err := run.AddService(&svc)
 		if err != nil {
@@ -634,14 +683,10 @@ func TestService(t *testing.T) {
 }
 
 func TestFlush(t *testing.T) {
-	execer := exec.New()
-	dbus := dbus.New()
-	run := New(execer, dbus)
-	err := run.InitIpvsInterface()
-	if err != nil {
-		t.Errorf("expected init ipvs interface success, got %v", err)
-	}
+
+	run := canRunTest(t)
 	defer run.Destroy()
+
 	for _, svc := range ServiceFuncTests {
 		err := run.AddService(&svc)
 		if err != nil {
@@ -653,7 +698,7 @@ func TestFlush(t *testing.T) {
 		}
 	}
 
-	err = run.Flush()
+	err := run.Flush()
 	if err != nil {
 		t.Errorf("expected delete all services success, got %v", err)
 	}
@@ -664,12 +709,12 @@ func TestFlush(t *testing.T) {
 }
 
 var DestinationFuncTests = []Destination{
-	Destination{
+	{
 		Address: net.ParseIP("10.232.12.32"),
 		Port:    32144,
 		Weight:  1,
 	},
-	Destination{
+	{
 		Address: net.ParseIP("10.233.23.211"),
 		Port:    23123,
 		Weight:  1,
@@ -713,17 +758,13 @@ func checkdestination(t *testing.T, i Interface, s *Service, d *Destination, che
 }
 
 func TestDestination(t *testing.T) {
-	execer := exec.New()
-	dbus := dbus.New()
-	run := New(execer, dbus)
-	err := run.InitIpvsInterface()
-	if err != nil {
-		t.Errorf("expected init ipvs interface success, got %v", err)
-	}
+
+	run := canRunTest(t)
 	defer run.Destroy()
+
 	s := ServiceFuncTests[0]
 
-	err = run.AddService(&s)
+	err := run.AddService(&s)
 	if err != nil {
 		t.Errorf("expected add service success, got %v", err)
 	}

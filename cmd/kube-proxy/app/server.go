@@ -85,6 +85,11 @@ const (
 	proxyModeIPVS      = "ipvs"
 )
 
+//Global Variables
+var (
+	ipvsInitFailed error
+)
+
 // checkKnownProxyMode returns true if proxyMode is valid.
 func checkKnownProxyMode(proxyMode string) bool {
 	switch proxyMode {
@@ -448,12 +453,11 @@ func NewProxyServer(config *componentconfig.KubeProxyConfiguration, cleanupAndEx
 	} else {
 		dbus = utildbus.New()
 		iptInterface = utiliptables.New(execer, dbus, protocol)
-		if config.Mode == proxyModeIPVS {
-			ipvsInterface = utilipvs.New(execer, dbus)
-			err := ipvsInterface.InitIpvsInterface()
-			if err != nil {
-				return nil, fmt.Errorf("unable to init ipvs: %v", err)
-			}
+		ipvsInterface = utilipvs.New(execer, dbus)
+		err := ipvsInterface.InitIpvsInterface()
+		if err != nil {
+			ipvsInitFailed = fmt.Errorf("unable to init ipvs: %v", err)
+			glog.Warningf("%v.. Skipping ipvs modules")
 		}
 	}
 
@@ -520,9 +524,15 @@ func NewProxyServer(config *componentconfig.KubeProxyConfiguration, cleanupAndEx
 		glog.V(0).Info("Tearing down userspace and ipvs rules.")
 		// TODO this has side effects that should only happen when Run() is invoked.
 		userspace.CleanupLeftovers(iptInterface)
-		ipvs.CleanupLeftovers(ipvsInterface, iptInterface)
+		if ipvsInitFailed == nil {
+			//if no error initializing ipvs modules then clean them
+			ipvs.CleanupLeftovers(ipvsInterface, iptInterface)
+		}
 	} else if proxyMode == proxyModeIPVS {
 		glog.V(0).Info("Using ipvs Proxier.")
+		if ipvsInitFailed != nil {
+			return nil, ipvsInitFailed
+		}
 		ipvsInterface := utilipvs.New(execer, dbus)
 		proxierIPVS, err := ipvs.NewProxier(
 			iptInterface,
@@ -602,7 +612,9 @@ func NewProxyServer(config *componentconfig.KubeProxyConfiguration, cleanupAndEx
 			glog.V(0).Info("Tearing down pure-iptables proxy rules.")
 			// TODO this has side effects that should only happen when Run() is invoked.
 			iptables.CleanupLeftovers(iptInterface)
-			ipvs.CleanupLeftovers(ipvsInterface, iptInterface)
+			if ipvsInitFailed == nil {
+				ipvs.CleanupLeftovers(ipvsInterface, iptInterface)
+			}
 		}
 	}
 
@@ -647,7 +659,9 @@ func (s *ProxyServer) Run() error {
 	if s.CleanupAndExit {
 		encounteredError := userspace.CleanupLeftovers(s.IptInterface)
 		encounteredError = iptables.CleanupLeftovers(s.IptInterface) || encounteredError
-		encounteredError = ipvs.CleanupLeftovers(s.IpvsInterface, s.IptInterface) || encounteredError
+		if ipvsInitFailed == nil {
+			encounteredError = ipvs.CleanupLeftovers(s.IpvsInterface, s.IptInterface) || encounteredError
+		}
 		if encounteredError {
 			return errors.New("encountered an error while tearing down rules.")
 		}

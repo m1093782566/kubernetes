@@ -93,7 +93,7 @@ func newServiceInfo(serviceName proxy.ServicePortName, port *api.ServicePort, se
 		// Deep-copy in case the service instance changes
 		LoadBalancerStatus:       *helper.LoadBalancerStatusDeepCopy(&service.Status.LoadBalancer),
 		SessionAffinityType:      service.Spec.SessionAffinity,
-		StickyMaxAgeMinutes:      180, // TODO: paramaterize this in the API.
+		StickyMaxAgeMinutes:      180, // TODO: parameterize this in the API.
 		ExternalIPs:              make([]string, len(service.Spec.ExternalIPs)),
 		LoadBalancerSourceRanges: make([]string, len(service.Spec.LoadBalancerSourceRanges)),
 		OnlyNodeLocalEndpoints:   onlyNodeLocalEndpoints,

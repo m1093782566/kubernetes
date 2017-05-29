@@ -22,7 +22,10 @@ go_test(
 
 go_library(
     name = "go_default_library",
-    srcs = ["ipvs.go"],
+    srcs = [
+        "ipvs.go",
+        "ipvs_linux.go",
+    ],
     tags = ["automanaged"],
     deps = [
         "//pkg/util/dbus:go_default_library",

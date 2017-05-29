@@ -61,7 +61,7 @@ func ExecConntrackTool(execer exec.Interface, parameters ...string) error {
 
 // Clear UDP conntrack for port or all conntrack entries when port equal zero.
 // When a packet arrives, it will not go through NAT table again, because it is not "the first" packet.
-// The solution is clearing the conntrack. Known issus:
+// The solution is clearing the conntrack. Known issues:
 // https://github.com/docker/docker/issues/8795
 // https://github.com/kubernetes/kubernetes/issues/31983
 func ClearUDPConntrackForPort(execer exec.Interface, port int) {

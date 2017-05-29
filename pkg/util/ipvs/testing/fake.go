@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	utilipvs "k8s.io/kubernetes/pkg/util/ipvs"
-
 )
 
 // no-op implementation of ipvs Interface
@@ -42,15 +41,15 @@ func (s *serviceKey) String() string {
 
 func NewFake() *FakeIPVS {
 	return &FakeIPVS{
-		Services: make(map[serviceKey]*utilipvs.Service),
+		Services:     make(map[serviceKey]*utilipvs.Service),
 		Destinations: make(map[serviceKey][]*utilipvs.Destination),
 	}
 }
 
 func toServiceKey(serv *utilipvs.Service) serviceKey {
 	return serviceKey{
-		IP: serv.Address.To4().String(),
-		Port: serv.Port,
+		IP:       serv.Address.To4().String(),
+		Port:     serv.Port,
 		Protocol: serv.Protocol,
 	}
 }

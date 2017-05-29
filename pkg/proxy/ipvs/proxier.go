@@ -1,9 +1,12 @@
 /*
 Copyright 2017 The Kubernetes Authors.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -695,7 +698,7 @@ func (proxier *Proxier) syncProxyRules(reason syncReason) {
 					}
 
 					// If the packet was able to reach the end of firewall chain, then it did not get DNATed.
-					// It means the packet cannot go thru the firewall, then DROP it.
+					// It means the packet cannot go through the firewall, then DROP it.
 					writeLine(natRules, append(args, "-j", string(KubeMarkDropChain))...)
 				}
 
@@ -819,7 +822,7 @@ func (proxier *Proxier) syncProxyRules(reason syncReason) {
 		glog.Errorf("Error syncing healtcheck services: %v", err)
 	}
 	if err := proxier.healthChecker.SyncEndpoints(hcEndpoints); err != nil {
-		glog.Errorf("Error syncing healthcheck endoints: %v", err)
+		glog.Errorf("Error syncing healthcheck endpoints: %v", err)
 	}
 
 	// Finish housekeeping.
@@ -850,7 +853,7 @@ func (proxier *Proxier) ensureKubeServiceChain() {
 	}
 }
 
-// Join all words with spaces, terminate with newline and write to buf.
+// Join all words with spaces, terminate with newline and write to buff.
 func writeLine(buf *bytes.Buffer, words ...string) {
 	buf.WriteString(strings.Join(words, " ") + "\n")
 }

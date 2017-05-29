@@ -123,12 +123,12 @@ func TestDeleteServiceConnections(t *testing.T) {
 			expectCommand := fmt.Sprintf("conntrack -D --orig-dst %s -p udp", ip)
 			execCommand := strings.Join(fcmd.CombinedOutputLog[svcCount], " ")
 			if expectCommand != execCommand {
-				t.Errorf("Exepect comand: %s, but executed %s", expectCommand, execCommand)
+				t.Errorf("Expected command: %s, but executed %s", expectCommand, execCommand)
 			}
 			svcCount += 1
 		}
 		if svcCount != fexec.CommandCalls {
-			t.Errorf("Exepect comand executed %d times, but got %d", svcCount, fexec.CommandCalls)
+			t.Errorf("Expected command to execute %d times, but was executed only %d times", svcCount, fexec.CommandCalls)
 		}
 	}
 }
@@ -182,13 +182,13 @@ func TestDeleteEndpointConnections(t *testing.T) {
 			expectCommand := fmt.Sprintf("conntrack -D --orig-dst %s --dst-nat %s -p udp", svcIp, EndpointIp)
 			execCommand := strings.Join(fcmd.CombinedOutputLog[expectCommandExecCount], " ")
 			if expectCommand != execCommand {
-				t.Errorf("Exepect comand: %s, but executed %s", expectCommand, execCommand)
+				t.Errorf("Expected command: %s, but executed %s", expectCommand, execCommand)
 			}
 			expectCommandExecCount += 1
 		}
 
 		if expectCommandExecCount != fexec.CommandCalls {
-			t.Errorf("Exepect comand executed %d times, but got %d", expectCommandExecCount, fexec.CommandCalls)
+			t.Errorf("Expected command to execute %d times, but was executed only %d times", expectCommandExecCount, fexec.CommandCalls)
 		}
 	}
 }

@@ -273,12 +273,13 @@ func (config *NetworkingTestConfig) DialFromNode(protocol, targetIP string, targ
 	Failf("Failed to find expected endpoints:\nTries %d\nCommand %v\nretrieved %v\nexpected %v\n", minTries, cmd, eps, expectedEps)
 }
 
-// GetSelfURL executes a curl against the given path via kubectl exec into a
-// test container running with host networking, and fails if the output
-// doesn't match the expected string.
-func (config *NetworkingTestConfig) GetSelfURL(port int32, path string, expected string) {
-	cmd := fmt.Sprintf("curl -i -q -s --connect-timeout 1 http://localhost:%d%s", port, path)
-	By(fmt.Sprintf("Getting kube-proxy self URL %s", path))
+// GetSelfStatusCode executes a curl against the given path via kubectl exec into a
+// test container running with host networking, and fails if the returned status
+// code doesn't match the expected string.
+func (config *NetworkingTestConfig) GetSelfURLStatusCode(port int32, path string, expected string) {
+	// check status code
+	cmd := fmt.Sprintf("curl -o /dev/null -i -q -s -w %{http_code} --connect-timeout 1 http://localhost:%d%s", port, path)
+	By(fmt.Sprintf("Getting kube-proxy self URL %s status code", path))
 
 	// These are arbitrary timeouts. The curl command should pass on first try,
 	// unless kubeproxy is starved/bootstrapping/restarting etc.

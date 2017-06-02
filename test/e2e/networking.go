@@ -76,14 +76,14 @@ var _ = framework.KubeDescribe("Networking", func() {
 		}
 	})
 
-	It("should check kube-proxy urls", func() {
+	It("should check kube-proxy urls status code", func() {
 		// TODO: this is overkill we just need the host networking pod
 		// to hit kube-proxy urls.
 		config := framework.NewNetworkingTestConfig(f)
 
-		By("checking kube-proxy URLs")
-		config.GetSelfURL(ports.ProxyHealthzPort, "/healthz", "200 OK")
-		config.GetSelfURL(ports.ProxyStatusPort, "/proxyMode", "iptables") // the default
+		By("checking kube-proxy URLs status code")
+		config.GetSelfURLStatusCode(ports.ProxyHealthzPort, "/healthz", "200")
+		config.GetSelfURLStatusCode(ports.ProxyStatusPort, "/proxyMode", "200")
 	})
 
 	// TODO: Remove [Slow] when this has had enough bake time to prove presubmit worthiness.

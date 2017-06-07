@@ -129,6 +129,7 @@ type Options struct {
 func AddFlags(options *Options, fs *pflag.FlagSet) {
 	fs.StringVar(&options.ConfigFile, "config", options.ConfigFile, "The path to the configuration file.")
 	fs.StringVar(&options.WriteConfigTo, "write-config-to", options.WriteConfigTo, "If set, write the default configuration values to this file and exit.")
+	fs.MarkDeprecated("cleanup-iptables", "This flag is replaced by cleanup-proxyrules.")
 	fs.BoolVar(&options.CleanupAndExit, "cleanup-proxyrules", options.CleanupAndExit, "If true cleanup iptables and ipvs rules and exit.")
 
 	// All flags below here are deprecated and will eventually be removed.
@@ -147,6 +148,8 @@ func AddFlags(options *Options, fs *pflag.FlagSet) {
 	fs.Int32Var(options.config.IPTables.MasqueradeBit, "iptables-masquerade-bit", util.Int32PtrDerefOr(options.config.IPTables.MasqueradeBit, 14), "If using the pure iptables proxy, the bit of the fwmark space to mark packets requiring SNAT with.  Must be within the range [0, 31].")
 	fs.DurationVar(&options.config.IPTables.SyncPeriod.Duration, "iptables-sync-period", options.config.IPTables.SyncPeriod.Duration, "The maximum interval of how often iptables rules are refreshed (e.g. '5s', '1m', '2h22m').  Must be greater than 0.")
 	fs.DurationVar(&options.config.IPTables.MinSyncPeriod.Duration, "iptables-min-sync-period", options.config.IPTables.MinSyncPeriod.Duration, "The minimum interval of how often the iptables rules can be refreshed as endpoints and services change (e.g. '5s', '1m', '2h22m').")
+	fs.DurationVar(&options.config.IPVS.SyncPeriod.Duration, "ipvs-sync-period", options.config.IPVS.SyncPeriod.Duration, "The maximum interval of how often iptables rules are refreshed (e.g. '5s', '1m', '2h22m').  Must be greater than 0.")
+	fs.DurationVar(&options.config.IPVS.MinSyncPeriod.Duration, "ipvs-min-sync-period", options.config.IPVS.MinSyncPeriod.Duration, "The minimum interval of how often the iptables rules can be refreshed as endpoints and services change (e.g. '5s', '1m', '2h22m').")
 	fs.DurationVar(&options.config.ConfigSyncPeriod.Duration, "config-sync-period", options.config.ConfigSyncPeriod.Duration, "How often configuration from the apiserver is refreshed.  Must be greater than 0.")
 	fs.BoolVar(&options.config.IPTables.MasqueradeAll, "masquerade-all", options.config.IPTables.MasqueradeAll, "If using the pure iptables proxy, SNAT everything (this not commonly needed)")
 	fs.StringVar(&options.config.ClusterCIDR, "cluster-cidr", options.config.ClusterCIDR, "The CIDR range of pods in the cluster. It is used to bridge traffic coming from outside of the cluster. If not provided, no off-cluster bridging will be performed.")
@@ -167,7 +170,7 @@ func AddFlags(options *Options, fs *pflag.FlagSet) {
 		options.config.Conntrack.TCPCloseWaitTimeout.Duration,
 		"NAT timeout for TCP connections in the CLOSE_WAIT state")
 	fs.BoolVar(&options.config.EnableProfiling, "profiling", options.config.EnableProfiling, "If true enables profiling via web interface on /debug/pprof handler.")
-	fs.StringVar(&options.config.Scheduler, "ipvs-scheduler", options.config.Scheduler, "ipvs scheduler type")
+	fs.StringVar(&options.config.IPVS.Scheduler, "ipvs-scheduler", options.config.IPVS.Scheduler, "ipvs scheduler type")
 	utilfeature.DefaultFeatureGate.AddFlag(fs)
 }
 
@@ -539,8 +542,8 @@ func NewProxyServer(config *componentconfig.KubeProxyConfiguration, cleanupAndEx
 			ipvsInterface,
 			utilsysctl.New(),
 			execer,
-			config.IPTables.SyncPeriod.Duration,
-			config.IPTables.MinSyncPeriod.Duration,
+			config.IPVS.SyncPeriod.Duration,
+			config.IPVS.MinSyncPeriod.Duration,
 			config.IPTables.MasqueradeAll,
 			int(*config.IPTables.MasqueradeBit),
 			config.ClusterCIDR,
@@ -548,7 +551,7 @@ func NewProxyServer(config *componentconfig.KubeProxyConfiguration, cleanupAndEx
 			getNodeIP(client, hostname),
 			recorder,
 			healthzServer,
-			config.Scheduler,
+			config.IPVS.Scheduler,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create proxier: %v", err)
@@ -556,8 +559,7 @@ func NewProxyServer(config *componentconfig.KubeProxyConfiguration, cleanupAndEx
 		proxier = proxierIPVS
 		serviceEventHandler = proxierIPVS
 		endpointsEventHandler = proxierIPVS
-		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
-		glog.V(0).Info("Tearing down userspace rules.")
+		glog.V(0).Info("Tearing down userspace and iptables rules.")
 		// TODO this has side effects that should only happen when Run() is invoked.
 		userspace.CleanupLeftovers(iptInterface)
 		iptables.CleanupLeftovers(iptInterface)
@@ -607,9 +609,9 @@ func NewProxyServer(config *componentconfig.KubeProxyConfiguration, cleanupAndEx
 			serviceEventHandler = proxierUserspace
 			proxier = proxierUserspace
 		}
-		// Remove artifacts from the pure-iptables Proxier, if not on Windows.
+		// Remove artifacts from the iptables and ipvs Proxier, if not on Windows.
 		if goruntime.GOOS != "windows" {
-			glog.V(0).Info("Tearing down pure-iptables proxy rules.")
+			glog.V(0).Info("Tearing down inactive rules.")
 			// TODO this has side effects that should only happen when Run() is invoked.
 			iptables.CleanupLeftovers(iptInterface)
 			if ipvsInitFailed == nil {

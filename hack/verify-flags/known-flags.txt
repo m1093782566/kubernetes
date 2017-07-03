@@ -359,6 +359,8 @@ iptables-masquerade-bit
 iptables-min-sync-period
 iptables-sync-period
 ipvs-scheduler
+ipvs-min-sync-period
+ipvs-sync-period
 ir-data-source
 ir-dbname
 ir-hawkular

@@ -645,11 +645,11 @@ func checkservice(t *testing.T, i Interface, s *Service, check bool) {
 	switch check {
 	case true:
 		if !found {
-			t.Errorf("Did not find the service %s in ipvs output")
+			t.Errorf("Did not find the service %v in ipvs output", s)
 		}
 	case false:
 		if found {
-			t.Errorf("Did not expect the service %s in ipvs output")
+			t.Errorf("Did not expect the service %v in ipvs output", s)
 		}
 	}
 }
@@ -748,11 +748,11 @@ func checkdestination(t *testing.T, i Interface, s *Service, d *Destination, che
 	switch check {
 	case true:
 		if !found {
-			t.Errorf("Did not find the destination %s in ipvs output")
+			t.Errorf("Did not find the destination %v in ipvs output", d)
 		}
 	case false:
 		if found {
-			t.Errorf("Did not expect the destination %s in ipvs output")
+			t.Errorf("Did not expect the destination %v in ipvs output", d)
 		}
 	}
 }

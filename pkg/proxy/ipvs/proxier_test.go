@@ -195,7 +195,7 @@ func TestNodePort(t *testing.T) {
 	// Check ipvs service and destinations
 	services, err := ipvs.GetServices()
 	if err != nil {
-		t.Errorf("Failed to get ipvs services, err: %v")
+		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
 	if len(services) != 2 {
 		t.Errorf("Expect 2 ipvs services, got %d", len(services))
@@ -253,7 +253,7 @@ func TestNodePortNoEndpoint(t *testing.T) {
 	// Check ipvs service and destinations
 	services, err := ipvs.GetServices()
 	if err != nil {
-		t.Errorf("Failed to get ipvs services, err: %v")
+		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
 	if len(services) != 2 {
 		t.Errorf("Expect 2 ipvs services, got %d", len(services))
@@ -264,7 +264,7 @@ func TestNodePortNoEndpoint(t *testing.T) {
 			found = true
 			destinations, _ := ipvs.GetDestinations(svc)
 			if len(destinations) != 0 {
-				t.Errorf("Unexpected %d destinations, expect 0 destinations")
+				t.Errorf("Unexpected %d destinations, expect 0 destinations", len(destinations))
 			}
 			break
 		}
@@ -301,7 +301,7 @@ func TestClusterIPNoEndpoint(t *testing.T) {
 	// check ipvs service and destinations
 	services, err := ipvs.GetServices()
 	if err != nil {
-		t.Errorf("Failed to get ipvs services, err: %v")
+		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
 	if len(services) != 1 {
 		t.Errorf("Expect 1 ipvs services, got %d", len(services))
@@ -311,7 +311,7 @@ func TestClusterIPNoEndpoint(t *testing.T) {
 		} else {
 			destinations, _ := ipvs.GetDestinations(services[0])
 			if len(destinations) != 0 {
-				t.Errorf("Unexpected %d destinations, expect 0 destinations")
+				t.Errorf("Unexpected %d destinations, expect 0 destinations", len(destinations))
 			}
 		}
 	}
@@ -359,7 +359,7 @@ func TestClusterIP(t *testing.T) {
 	// check ipvs service and destinations
 	services, err := ipvs.GetServices()
 	if err != nil {
-		t.Errorf("Failed to get ipvs services, err: %v")
+		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
 	if len(services) != 1 {
 		t.Errorf("Expect 1 ipvs services, got %d", len(services))
@@ -369,7 +369,7 @@ func TestClusterIP(t *testing.T) {
 		} else {
 			destinations, _ := ipvs.GetDestinations(services[0])
 			if len(destinations) != 1 {
-				t.Errorf("Unexpected %d destinations, expect 0 destinations")
+				t.Errorf("Unexpected %d destinations, expect 0 destinations", len(destinations))
 			} else if destinations[0].Address.To4().String() != epIP || destinations[0].Port != uint16(svcPort) {
 				t.Errorf("Unexpected mismatch destinations")
 			}
@@ -410,7 +410,7 @@ func TestExternalIPsNoEndpoint(t *testing.T) {
 	// check ipvs service and destinations
 	services, err := ipvs.GetServices()
 	if err != nil {
-		t.Errorf("Failed to get ipvs services, err: %v")
+		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
 	if len(services) != 2 {
 		t.Errorf("Expect 2 ipvs services, got %d", len(services))
@@ -421,7 +421,7 @@ func TestExternalIPsNoEndpoint(t *testing.T) {
 			found = true
 			destinations, _ := ipvs.GetDestinations(svc)
 			if len(destinations) != 0 {
-				t.Errorf("Unexpected %d destinations, expect 0 destinations")
+				t.Errorf("Unexpected %d destinations, expect 0 destinations", len(destinations))
 			}
 			break
 		}
@@ -477,7 +477,7 @@ func TestExternalIPs(t *testing.T) {
 	// check ipvs service and destinations
 	services, err := ipvs.GetServices()
 	if err != nil {
-		t.Errorf("Failed to get ipvs services, err: %v")
+		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
 	if len(services) != 2 {
 		t.Errorf("Expect 2 ipvs services, got %d", len(services))
@@ -603,7 +603,7 @@ func TestOnlyLocalNodePorts(t *testing.T) {
 	// Expect 2 services and 1 destination
 	services, err := ipvs.GetServices()
 	if err != nil {
-		t.Errorf("Failed to get ipvs services, err: %v")
+		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
 	if len(services) != 2 {
 		t.Errorf("Expect 2 ipvs services, got %d", len(services))
@@ -990,7 +990,7 @@ func TestSessionAffinity(t *testing.T) {
 	// check ipvs service and destinations
 	services, err := ipvs.GetServices()
 	if err != nil {
-		t.Errorf("Failed to get ipvs services, err: %v")
+		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
 	for _, svc := range services {
 		if svc.Timeout != uint32(180*60) {

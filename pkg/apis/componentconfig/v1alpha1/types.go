@@ -58,12 +58,12 @@ type KubeProxyIPTablesConfiguration struct {
 type KubeProxyIPVSConfiguration struct {
 	// syncPeriod is the period that ipvs rules are refreshed (e.g. '5s', '1m',
 	// '2h22m').  Must be greater than 0.
-	SyncPeriod metav1.Duration
+	SyncPeriod metav1.Duration `json:"syncPeriod"`
 	// minSyncPeriod is the minimum period that ipvs rules are refreshed (e.g. '5s', '1m',
 	// '2h22m').
-	MinSyncPeriod metav1.Duration
+	MinSyncPeriod metav1.Duration `json:"minSyncPeriod"`
 	// ipvs scheduler
-	Scheduler string
+	Scheduler string `json:"scheduler"`
 }
 
 // KubeProxyConntrackConfiguration contains conntrack settings for
@@ -125,7 +125,7 @@ type KubeProxyConfiguration struct {
 	// iptables contains iptables-related configuration options.
 	IPTables KubeProxyIPTablesConfiguration `json:"iptables"`
 	// ipvs contains ipvs-related configuration options.
-	IPVS KubeProxyIPVSConfiguration
+	IPVS KubeProxyIPVSConfiguration `json:"ipvs"`
 	// oomScoreAdj is the oom-score-adj value for kube-proxy process. Values must be within
 	// the range [-1000, 1000]
 	OOMScoreAdj *int32 `json:"oomScoreAdj"`

@@ -3613,6 +3613,22 @@ message ServiceAccountList {
   repeated ServiceAccount items = 2;
 }
 
+// ServiceAffinityConfig represents the configurations of session affinity.
+message ServiceAffinityConfig {
+  // ClientIPConfig contains the configurations of Client IP based session affinity.
+  // +optional
+  optional ServiceAffinityConfigClientIP clientIPConfig = 1;
+}
+
+// ServiceAffinityConfigClientIP represents the configurations of Client IP based session affinity.
+message ServiceAffinityConfigClientIP {
+  // TimeoutSeconds specifies the seconds of ClientIP type session sticky time.
+  // The value must be specified if ServiceAffinity == "ClientIP".
+  // Default value is 86400 for 1 day.
+  // +optional
+  optional int32 timeoutSeconds = 1;
+}
+
 // ServiceList holds a list of services.
 message ServiceList {
   // Standard list metadata.
@@ -3771,6 +3787,10 @@ message ServiceSpec {
   // and ExternalTrafficPolicy is set to Local.
   // +optional
   optional int32 healthCheckNodePort = 12;
+
+  // serviceAffinityConfig contains the configurations of session affinity.
+  // +optional
+  optional ServiceAffinityConfig serviceAffinityConfig = 13;
 }
 
 // ServiceStatus represents the current status of a service.

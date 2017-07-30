@@ -21786,6 +21786,10 @@
       "type": "integer",
       "format": "int32",
       "description": "healthCheckNodePort specifies the healthcheck nodePort for the service. If not specified, HealthCheckNodePort is created by the service api backend with the allocated nodePort. Will use user-specified nodePort value if specified by the client. Only effects when Type is set to LoadBalancer and ExternalTrafficPolicy is set to Local."
+     },
+     "serviceAffinityConfig": {
+      "$ref": "v1.ServiceAffinityConfig",
+      "description": "serviceAffinityConfig contains the configurations of session affinity."
      }
     }
    },
@@ -21817,6 +21821,27 @@
       "type": "integer",
       "format": "int32",
       "description": "The port on each node on which this service is exposed when type=NodePort or LoadBalancer. Usually assigned by the system. If specified, it will be allocated to the service if unused or else creation of the service will fail. Default is to auto-allocate a port if the ServiceType of this Service requires one. More info: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport"
+     }
+    }
+   },
+   "v1.ServiceAffinityConfig": {
+    "id": "v1.ServiceAffinityConfig",
+    "description": "ServiceAffinityConfig represents the configurations of session affinity.",
+    "properties": {
+     "clientIPConfig": {
+      "$ref": "v1.ServiceAffinityConfigClientIP",
+      "description": "ClientIPConfig contains the configurations of Client IP based session affinity."
+     }
+    }
+   },
+   "v1.ServiceAffinityConfigClientIP": {
+    "id": "v1.ServiceAffinityConfigClientIP",
+    "description": "ServiceAffinityConfigClientIP represents the configurations of Client IP based session affinity.",
+    "properties": {
+     "timeoutSeconds": {
+      "type": "integer",
+      "format": "int32",
+      "description": "TimeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be specified if ServiceAffinity == \"ClientIP\". Default value is 86400 for 1 day."
      }
     }
    },

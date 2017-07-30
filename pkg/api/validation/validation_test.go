@@ -10224,3 +10224,132 @@ func TestValidateFlexVolumeSource(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateOrSetClientIPAffinityConfig(t *testing.T) {
+	successCases := map[string]struct {
+		serviceSpec *api.ServiceSpec
+	}{
+		"no session affinity, empty config": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityNone,
+			},
+		},
+		"no session affinity, non-empty config, invalid timeout": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityNone,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: -1,
+					},
+				},
+			},
+		},
+		"no session affinity, non-empty config, valid timeout: 1": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityNone,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: 1,
+					},
+				},
+			},
+		},
+		"Client IP based affinity, non-empty config, valid timeout: 1": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityClientIP,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: 1,
+					},
+				},
+			},
+		},
+		"Client IP based affinity, non-empty config, valid timeout: api.ServiceAffinityClientIPDefaultSeconds": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityClientIP,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: api.ServiceAffinityClientIPDefaultSeconds,
+					},
+				},
+			},
+		},
+		"Client IP based affinity, non-empty config, valid timeout: api.ServiceAffinityClientIPMaxAgeSeconds-1": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityClientIP,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: api.ServiceAffinityClientIPMaxAgeSeconds - 1,
+					},
+				},
+			},
+		},
+		"Client IP based affinity, non-empty config, valid timeout: api.ServiceAffinityClientIPMaxAgeSeconds": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityClientIP,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: api.ServiceAffinityClientIPMaxAgeSeconds,
+					},
+				},
+			},
+		},
+	}
+
+	for name, test := range successCases {
+		if errs := validateOrSetServiceAffinityConfig(test.serviceSpec.SessionAffinity, test.serviceSpec.ServiceAffinityConfig, field.NewPath("field")); len(errs) != 0 {
+			t.Errorf("case: %s, expected success: %v", name, errs)
+		}
+	}
+
+	errorCases := map[string]struct {
+		serviceSpec *api.ServiceSpec
+	}{
+		"Client IP based affinity, non-empty config, invalid timeout: 2 * api.ServiceAffinityClientIPMaxAgeSeconds": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityClientIP,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: 2 * api.ServiceAffinityClientIPMaxAgeSeconds,
+					},
+				},
+			},
+		},
+		"Client IP based affinity, non-empty config, invalid timeout: 1+api.ServiceAffinityClientIPMaxAgeSeconds-1": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityClientIP,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: 1 + api.ServiceAffinityClientIPMaxAgeSeconds,
+					},
+				},
+			},
+		},
+		"Client IP based affinity, non-empty config, invalid timeout: 0": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityClientIP,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: 0,
+					},
+				},
+			},
+		},
+		"Client IP based affinity, non-empty config, invalid timeout: -1": {
+			serviceSpec: &api.ServiceSpec{
+				SessionAffinity: api.ServiceAffinityClientIP,
+				ServiceAffinityConfig: &api.ServiceAffinityConfig{
+					ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+						TimeoutSeconds: -1,
+					},
+				},
+			},
+		},
+	}
+
+	for name, test := range errorCases {
+		if errs := validateOrSetServiceAffinityConfig(test.serviceSpec.SessionAffinity, test.serviceSpec.ServiceAffinityConfig, field.NewPath("field")); len(errs) == 0 {
+			t.Errorf("case: %v, expected failures: %v", name, errs)
+		}
+	}
+}

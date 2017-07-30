@@ -1787,6 +1787,49 @@ func validateProbe(probe *api.Probe, fldPath *field.Path) field.ErrorList {
 	return allErrs
 }
 
+func validateOrSetServiceAffinityConfig(affinity api.ServiceAffinity, config *api.ServiceAffinityConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	// No need to validate when no session affinity.
+	if affinity == api.ServiceAffinityNone {
+		return allErrs
+	}
+	if affinity == api.ServiceAffinityClientIP {
+		// If ServiceAffinityConfig is nil, set the default value
+		if config == nil {
+			config = &api.ServiceAffinityConfig{
+				ClientIPConfig: &api.ServiceAffinityConfigClientIP{
+					TimeoutSeconds: api.ServiceAffinityClientIPDefaultSeconds,
+				},
+			}
+			return allErrs
+		}
+		allErrs = append(allErrs, validateOrSetClientIPAffinityConfig(config.ClientIPConfig, fldPath.Child("clientIPConfig"))...)
+		return allErrs
+	}
+	return allErrs
+}
+
+func validateOrSetClientIPAffinityConfig(config *api.ServiceAffinityConfigClientIP, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	// If ServiceAffinityConfig is nil, set the default value
+	if config == nil {
+		config = &api.ServiceAffinityConfigClientIP{
+			TimeoutSeconds: api.ServiceAffinityClientIPDefaultSeconds,
+		}
+		return allErrs
+	}
+	allErrs = append(allErrs, validateAffinityTimeout(config.TimeoutSeconds, fldPath.Child("timeoutSeconds"))...)
+	return allErrs
+}
+
+func validateAffinityTimeout(timeout int32, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if timeout <= 0 || timeout > api.ServiceAffinityClientIPMaxAgeSeconds {
+		allErrs = append(allErrs, field.Invalid(fldPath, timeout, "should be positive and less than 86400"))
+	}
+	return allErrs
+}
+
 // AccumulateUniqueHostPorts extracts each HostPort of each Container,
 // accumulating the results and returning an error if any ports conflict.
 func AccumulateUniqueHostPorts(containers []api.Container, accumulator *sets.String, fldPath *field.Path) field.ErrorList {
@@ -2843,6 +2886,8 @@ func ValidateService(service *api.Service) field.ErrorList {
 	} else if !supportedSessionAffinityType.Has(string(service.Spec.SessionAffinity)) {
 		allErrs = append(allErrs, field.NotSupported(specPath.Child("sessionAffinity"), service.Spec.SessionAffinity, supportedSessionAffinityType.List()))
 	}
+
+	allErrs = append(allErrs, validateOrSetServiceAffinityConfig(service.Spec.SessionAffinity, service.Spec.ServiceAffinityConfig, specPath.Child("serviceAffinityConfig"))...)
 
 	if helper.IsServiceIPSet(service) {
 		if ip := net.ParseIP(service.Spec.ClusterIP); ip == nil {

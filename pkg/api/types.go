@@ -2573,6 +2573,31 @@ const (
 	ServiceAffinityNone ServiceAffinity = "None"
 )
 
+const (
+	// ServiceAffinityClientIPDefaultSeconds is the default timeout seconds
+	// of Client IP based session affinity - 3 hours.
+	ServiceAffinityClientIPDefaultSeconds int32 = 10800
+	// ServiceAffinityClientIPMaxAgeSeconds is the max timeout seconds
+	// of Client IP based session affinity - 1 day.
+	ServiceAffinityClientIPMaxAgeSeconds int32 = 86400
+)
+
+// ServiceAffinityConfig represents the configurations of session affinity.
+type ServiceAffinityConfig struct {
+	// ClientIPConfig contains the configurations of Client IP based session affinity.
+	// +optional
+	ClientIPConfig *ServiceAffinityConfigClientIP
+}
+
+// ServiceAffinityConfigClientIP represents the configurations of Client IP based session affinity.
+type ServiceAffinityConfigClientIP struct {
+	// TimeoutSeconds specifies the seconds of ClientIP type session sticky time.
+	// The value must be specified if ServiceAffinity == "ClientIP".
+	// Default value is 86400 for 1 day.
+	// +optional
+	TimeoutSeconds int32
+}
+
 // Service Type string describes ingress methods for a service
 type ServiceType string
 
@@ -2699,6 +2724,10 @@ type ServiceSpec struct {
 	// Optional: Supports "ClientIP" and "None".  Used to maintain session affinity.
 	// +optional
 	SessionAffinity ServiceAffinity
+
+	// ServiceAffinityConfig contains the configurations of session affinity.
+	// +optional
+	ServiceAffinityConfig *ServiceAffinityConfig
 
 	// Optional: If specified and supported by the platform, this will restrict traffic through the cloud-provider
 	// load-balancer will be restricted to the specified client IPs. This field will be ignored if the

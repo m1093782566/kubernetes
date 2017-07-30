@@ -1818,6 +1818,24 @@ func (ServiceAccountList) SwaggerDoc() map[string]string {
 	return map_ServiceAccountList
 }
 
+var map_ServiceAffinityConfig = map[string]string{
+	"":               "ServiceAffinityConfig represents the configurations of session affinity.",
+	"clientIPConfig": "ClientIPConfig contains the configurations of Client IP based session affinity.",
+}
+
+func (ServiceAffinityConfig) SwaggerDoc() map[string]string {
+	return map_ServiceAffinityConfig
+}
+
+var map_ServiceAffinityConfigClientIP = map[string]string{
+	"":               "ServiceAffinityConfigClientIP represents the configurations of Client IP based session affinity.",
+	"timeoutSeconds": "TimeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be specified if ServiceAffinity == \"ClientIP\". Default value is 86400 for 1 day.",
+}
+
+func (ServiceAffinityConfigClientIP) SwaggerDoc() map[string]string {
+	return map_ServiceAffinityConfigClientIP
+}
+
 var map_ServiceList = map[string]string{
 	"":         "ServiceList holds a list of services.",
 	"metadata": "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
@@ -1863,6 +1881,7 @@ var map_ServiceSpec = map[string]string{
 	"externalName":             "externalName is the external reference that kubedns or equivalent will return as a CNAME record for this service. No proxying will be involved. Must be a valid DNS name and requires Type to be ExternalName.",
 	"externalTrafficPolicy":    "externalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints. \"Local\" preserves the client source IP and avoids a second hop for LoadBalancer and Nodeport type services, but risks potentially imbalanced traffic spreading. \"Cluster\" obscures the client source IP and may cause a second hop to another node, but should have good overall load-spreading.",
 	"healthCheckNodePort":      "healthCheckNodePort specifies the healthcheck nodePort for the service. If not specified, HealthCheckNodePort is created by the service api backend with the allocated nodePort. Will use user-specified nodePort value if specified by the client. Only effects when Type is set to LoadBalancer and ExternalTrafficPolicy is set to Local.",
+	"serviceAffinityConfig":    "serviceAffinityConfig contains the configurations of session affinity.",
 }
 
 func (ServiceSpec) SwaggerDoc() map[string]string {

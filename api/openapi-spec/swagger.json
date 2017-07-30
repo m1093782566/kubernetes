@@ -57637,6 +57637,25 @@
      }
     ]
    },
+   "io.k8s.api.core.v1.ServiceAffinityConfig": {
+    "description": "ServiceAffinityConfig represents the configurations of session affinity.",
+    "properties": {
+     "clientIPConfig": {
+      "description": "ClientIPConfig contains the configurations of Client IP based session affinity.",
+      "$ref": "#/definitions/io.k8s.api.core.v1.ServiceAffinityConfigClientIP"
+     }
+    }
+   },
+   "io.k8s.api.core.v1.ServiceAffinityConfigClientIP": {
+    "description": "ServiceAffinityConfigClientIP represents the configurations of Client IP based session affinity.",
+    "properties": {
+     "timeoutSeconds": {
+      "description": "TimeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be specified if ServiceAffinity == \"ClientIP\". Default value is 86400 for 1 day.",
+      "type": "integer",
+      "format": "int32"
+     }
+    }
+   },
    "io.k8s.api.core.v1.ServiceList": {
     "description": "ServiceList holds a list of services.",
     "required": [
@@ -57754,6 +57773,10 @@
       "additionalProperties": {
        "type": "string"
       }
+     },
+     "serviceAffinityConfig": {
+      "description": "serviceAffinityConfig contains the configurations of session affinity.",
+      "$ref": "#/definitions/io.k8s.api.core.v1.ServiceAffinityConfig"
      },
      "sessionAffinity": {
       "description": "Supports \"ClientIP\" and \"None\". Used to maintain session affinity. Enable client IP based session affinity. Must be ClientIP or None. Defaults to None. More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies",

@@ -217,6 +217,15 @@ message CinderVolumeSource {
   optional bool readOnly = 3;
 }
 
+// ClientIPAffinityConfig represents the configurations of Client IP based session affinity.
+message ClientIPAffinityConfig {
+  // TimeoutSeconds specifies the seconds of ClientIP type session sticky time.
+  // The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP".
+  // Default value is 10800(for 3 hours).
+  // Required
+  optional int32 timeoutSeconds = 1;
+}
+
 // Information about the condition of a component.
 message ComponentCondition {
   // Type of condition for a component.
@@ -3780,6 +3789,10 @@ message ServiceSpec {
   // and ExternalTrafficPolicy is set to Local.
   // +optional
   optional int32 healthCheckNodePort = 12;
+
+  // clientIPAffinityConfig contains the configurations of Client IP based session affinity.
+  // +optional
+  optional ClientIPAffinityConfig clientIPAffinityConfig = 13;
 }
 
 // ServiceStatus represents the current status of a service.

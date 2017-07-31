@@ -139,6 +139,15 @@ func (CinderVolumeSource) SwaggerDoc() map[string]string {
 	return map_CinderVolumeSource
 }
 
+var map_ClientIPAffinityConfig = map[string]string{
+	"":               "ClientIPAffinityConfig represents the configurations of Client IP based session affinity.",
+	"timeoutSeconds": "TimeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == \"ClientIP\". Default value is 10800(for 3 hours). Required",
+}
+
+func (ClientIPAffinityConfig) SwaggerDoc() map[string]string {
+	return map_ClientIPAffinityConfig
+}
+
 var map_ComponentCondition = map[string]string{
 	"":        "Information about the condition of a component.",
 	"type":    "Type of condition for a component. Valid value: \"Healthy\"",
@@ -1864,6 +1873,7 @@ var map_ServiceSpec = map[string]string{
 	"externalName":             "externalName is the external reference that kubedns or equivalent will return as a CNAME record for this service. No proxying will be involved. Must be a valid DNS name and requires Type to be ExternalName.",
 	"externalTrafficPolicy":    "externalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints. \"Local\" preserves the client source IP and avoids a second hop for LoadBalancer and Nodeport type services, but risks potentially imbalanced traffic spreading. \"Cluster\" obscures the client source IP and may cause a second hop to another node, but should have good overall load-spreading.",
 	"healthCheckNodePort":      "healthCheckNodePort specifies the healthcheck nodePort for the service. If not specified, HealthCheckNodePort is created by the service api backend with the allocated nodePort. Will use user-specified nodePort value if specified by the client. Only effects when Type is set to LoadBalancer and ExternalTrafficPolicy is set to Local.",
+	"clientIPAffinityConfig":   "clientIPAffinityConfig contains the configurations of Client IP based session affinity.",
 }
 
 func (ServiceSpec) SwaggerDoc() map[string]string {

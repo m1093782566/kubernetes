@@ -9844,6 +9844,16 @@
      }
     }
    },
+   "io.k8s.api.core.v1.ClientIPAffinityConfig": {
+    "description": "ClientIPAffinityConfig represents the configurations of Client IP based session affinity.",
+    "properties": {
+     "timeoutSeconds": {
+      "description": "TimeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be \u003e0 \u0026\u0026 \u003c=86400(for 1 day) if ServiceAffinity == \"ClientIP\". Default value is 10800(for 3 hours). Required",
+      "type": "integer",
+      "format": "int32"
+     }
+    }
+   },
    "io.k8s.api.core.v1.ConfigMap": {
     "description": "ConfigMap holds configuration data for pods to consume.",
     "properties": {
@@ -11806,6 +11816,10 @@
    "io.k8s.api.core.v1.ServiceSpec": {
     "description": "ServiceSpec describes the attributes that a user creates on a service.",
     "properties": {
+     "clientIPAffinityConfig": {
+      "description": "clientIPAffinityConfig contains the configurations of Client IP based session affinity.",
+      "$ref": "#/definitions/io.k8s.api.core.v1.ClientIPAffinityConfig"
+     },
      "clusterIP": {
       "description": "clusterIP is the IP address of the service and is usually assigned randomly by the master. If an address is specified manually and is not in use by others, it will be allocated to the service; otherwise, creation of the service will fail. This field can not be changed through updates. Valid values are \"None\", empty string (\"\"), or a valid IP address. \"None\" can be specified for headless services when proxying is not required. Only applies to types ClusterIP, NodePort, and LoadBalancer. Ignored if type is ExternalName. More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies",
       "type": "string"

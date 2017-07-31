@@ -10224,3 +10224,45 @@ func TestValidateFlexVolumeSource(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateOrSetClientIPAffinityConfig(t *testing.T) {
+	successCases := map[string]*api.ClientIPAffinityConfig{
+		"empty config": nil,
+		"non-empty config, valid timeout: 1": {
+			TimeoutSeconds: 1,
+		},
+		"non-empty config, valid timeout: api.DefaultClientIPServiceAffinitySeconds": {
+			TimeoutSeconds: api.DefaultClientIPServiceAffinitySeconds,
+		},
+		"non-empty config, valid timeout: api.MaxClientIPServiceAffinitySeconds-1": {
+			TimeoutSeconds: api.MaxClientIPServiceAffinitySeconds - 1,
+		},
+		"non-empty config, valid timeout: api.MaxClientIPServiceAffinitySeconds": {
+			TimeoutSeconds: api.MaxClientIPServiceAffinitySeconds,
+		},
+	}
+
+	for name, test := range successCases {
+		if errs := validateClientIPAffinityConfig(test, field.NewPath("field")); len(errs) != 0 {
+			t.Errorf("case: %s, expected success: %v", name, errs)
+		}
+	}
+
+	errorCases := map[string]*api.ClientIPAffinityConfig{
+		"non-empty config, invalid timeout: api.MaxClientIPServiceAffinitySeconds+1": {
+			TimeoutSeconds: api.MaxClientIPServiceAffinitySeconds + 1,
+		},
+		"non-empty config, invalid timeout: -1": {
+			TimeoutSeconds: -1,
+		},
+		"non-empty config, invalid timeout: 0": {
+			TimeoutSeconds: 0,
+		},
+	}
+
+	for name, test := range errorCases {
+		if errs := validateClientIPAffinityConfig(test, field.NewPath("field")); len(errs) == 0 {
+			t.Errorf("case: %v, expected failures: %v", name, errs)
+		}
+	}
+}

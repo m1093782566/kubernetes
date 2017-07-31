@@ -20,6 +20,7 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/parsers"
 	utilpointer "k8s.io/kubernetes/pkg/util/pointer"
 )
@@ -100,6 +101,9 @@ func SetDefaults_Container(obj *v1.Container) {
 func SetDefaults_Service(obj *v1.Service) {
 	if obj.Spec.SessionAffinity == "" {
 		obj.Spec.SessionAffinity = v1.ServiceAffinityNone
+	}
+	if obj.Spec.SessionAffinity == v1.ServiceAffinityClientIP && obj.Spec.ClientIPAffinityConfig == nil {
+		defaultServiceAffinityConfig(obj.Spec.ClientIPAffinityConfig)
 	}
 	if obj.Spec.Type == "" {
 		obj.Spec.Type = v1.ServiceTypeClusterIP
@@ -370,5 +374,11 @@ func SetDefaults_ScaleIOVolumeSource(obj *v1.ScaleIOVolumeSource) {
 	}
 	if obj.FSType == "" {
 		obj.FSType = "xfs"
+	}
+}
+
+func defaultServiceAffinityConfig(obj *v1.ClientIPAffinityConfig) {
+	obj = &v1.ClientIPAffinityConfig{
+		TimeoutSeconds: api.DefaultClientIPServiceAffinitySeconds,
 	}
 }

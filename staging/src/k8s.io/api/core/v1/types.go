@@ -2915,6 +2915,31 @@ const (
 	ServiceAffinityNone ServiceAffinity = "None"
 )
 
+const (
+	// DefaultClientIPServiceAffinitySeconds is the default timeout seconds
+	// of Client IP based session affinity - 3 hours.
+	DefaultClientIPServiceAffinitySeconds int32 = 10800
+	// DefaultClientIPServiceAffinitySeconds is the max timeout seconds
+	// of Client IP based session affinity - 1 day.
+	MaxClientIPServiceAffinitySeconds int32 = 86400
+)
+
+// SessionAffinityConfig represents the configurations of session affinity.
+type SessionAffinityConfig struct {
+	// clientIP contains the configurations of Client IP based session affinity.
+	// +optional
+	ClientIP *ClientIPConfig `json:"clientIP,omitempty" protobuf:"bytes,1,opt,name=clientIP"`
+}
+
+// ClientIPConfig represents the configurations of Client IP based session affinity.
+type ClientIPConfig struct {
+	// timeoutSeconds specifies the seconds of ClientIP type session sticky time.
+	// The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP".
+	// Default value is 10800(for 3 hours).
+	// Required
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty" protobuf:"varint,1,opt,name=timeoutSeconds"`
+}
+
 // Service Type string describes ingress methods for a service
 type ServiceType string
 
@@ -3089,6 +3114,9 @@ type ServiceSpec struct {
 	// field.
 	// +optional
 	PublishNotReadyAddresses bool `json:"publishNotReadyAddresses,omitempty" protobuf:"varint,13,opt,name=publishNotReadyAddresses"`
+	// sessionAffinityConfig contains the configurations of session affinity.
+	// +optional
+	SessionAffinityConfig *SessionAffinityConfig `json:"sessionAffinityConfig,omitempty" protobuf:"bytes,14,opt,name=sessionAffinityConfig"`
 }
 
 // ServicePort contains information on service's port.

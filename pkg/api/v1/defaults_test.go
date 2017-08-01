@@ -672,6 +672,22 @@ func TestSetDefaultService(t *testing.T) {
 	}
 }
 
+func TestSetDefaultServiceWithClientIPAffinity(t *testing.T) {
+	svc := &v1.Service{
+		Spec: v1.ServiceSpec{
+			SessionAffinity: v1.ServiceAffinityClientIP,
+		},
+	}
+	obj2 := roundTrip(t, runtime.Object(svc))
+	svc2 := obj2.(*v1.Service)
+	if svc2.Spec.SessionAffinityConfig == nil || svc2.Spec.SessionAffinityConfig.ClientIP == nil {
+		t.Fatal("Unexpected empty client IP session affinity config when session affinity type is ClientIP")
+	}
+	if svc2.Spec.SessionAffinityConfig.ClientIP.TimeoutSeconds != v1.DefaultClientIPServiceAffinitySeconds {
+		t.Errorf("Expected default session affinity timeout seconds: %d, got: %d", v1.DefaultClientIPServiceAffinitySeconds, svc2.Spec.SessionAffinityConfig.ClientIP.TimeoutSeconds)
+	}
+}
+
 func TestSetDefaultSecretVolumeSource(t *testing.T) {
 	s := v1.PodSpec{}
 	s.Volumes = []v1.Volume{

@@ -2585,6 +2585,31 @@ const (
 type ServiceType string
 
 const (
+	// DefaultClientIPServiceAffinitySeconds is the default timeout seconds
+	// of Client IP based session affinity - 3 hours.
+	DefaultClientIPServiceAffinitySeconds int32 = 10800
+	// DefaultClientIPServiceAffinitySeconds is the max timeout seconds
+	// of Client IP based session affinity - 1 day.
+	MaxClientIPServiceAffinitySeconds int32 = 86400
+)
+
+// SessionAffinityConfig represents the configurations of session affinity.
+type SessionAffinityConfig struct {
+	// clientIP contains the configurations of Client IP based session affinity.
+	// +optional
+	ClientIP *ClientIPConfig
+}
+
+// ClientIPConfig represents the configurations of Client IP based session affinity.
+type ClientIPConfig struct {
+	// timeoutSeconds specifies the seconds of ClientIP type session sticky time.
+	// The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP".
+	// Default value is 10800(for 3 hours).
+	// Required
+	TimeoutSeconds int32
+}
+
+const (
 	// ServiceTypeClusterIP means a service will only be accessible inside the
 	// cluster, via the ClusterIP.
 	ServiceTypeClusterIP ServiceType = "ClusterIP"
@@ -2742,6 +2767,10 @@ type ServiceSpec struct {
 	// field.
 	// +optional
 	PublishNotReadyAddresses bool
+
+	// sessionAffinityConfig contains the configurations of session affinity.
+	// +optional
+	SessionAffinityConfig *SessionAffinityConfig
 }
 
 type ServicePort struct {

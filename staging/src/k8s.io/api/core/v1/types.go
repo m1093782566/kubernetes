@@ -2937,7 +2937,7 @@ type ClientIPConfig struct {
 	// The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP".
 	// Default value is 10800(for 3 hours).
 	// Required
-	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty" protobuf:"varint,1,opt,name=timeoutSeconds"`
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty" protobuf:"varint,1,name=timeoutSeconds"`
 }
 
 // Service Type string describes ingress methods for a service

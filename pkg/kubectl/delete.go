@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -130,12 +131,12 @@ type StatefulSetReaper struct {
 }
 
 // getOverlappingControllers finds rcs that this controller overlaps, as well as rcs overlapping this controller.
-func getOverlappingControllers(rcClient coreclient.ReplicationControllerInterface, rc *api.ReplicationController) ([]api.ReplicationController, error) {
+func getOverlappingControllers(rcClient coreclient.ReplicationControllerInterface, rc *v1.ReplicationController) ([]v1.ReplicationController, error) {
 	rcs, err := rcClient.List(metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error getting replication controllers: %v", err)
 	}
-	var matchingRCs []api.ReplicationController
+	var matchingRCs []v1.ReplicationController
 	rcLabels := labels.Set(rc.Spec.Selector)
 	for _, controller := range rcs.Items {
 		newRCLabels := labels.Set(controller.Spec.Selector)
@@ -181,7 +182,7 @@ func (reaper *ReplicationControllerReaper) Stop(namespace, name string, timeout 
 	if err != nil {
 		return fmt.Errorf("error getting replication controllers: %v", err)
 	}
-	exactMatchRCs := []api.ReplicationController{}
+	exactMatchRCs := []v1.ReplicationController{}
 	overlapRCs := []string{}
 	for _, overlappingRC := range overlappingCtrls {
 		if len(overlappingRC.Spec.Selector) == len(ctrl.Spec.Selector) {

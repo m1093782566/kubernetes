@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/api/core/v1"
 )
 
 // NamespaceGeneratorV1 supports stable generation of a namespace
@@ -65,7 +65,7 @@ func (g *NamespaceGeneratorV1) StructuredGenerate() (runtime.Object, error) {
 	if err := g.validate(); err != nil {
 		return nil, err
 	}
-	namespace := &api.Namespace{}
+	namespace := &v1.Namespace{}
 	namespace.Name = g.Name
 	return namespace, nil
 }

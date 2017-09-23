@@ -227,7 +227,7 @@ func TestNodePort(t *testing.T) {
 				t.Errorf("Failed to get ipvs destinations, err: %v", err)
 			}
 			for _, dest := range destinations {
-				if dest.Address.To4().String() != epIP || dest.Port != uint16(svcPort) {
+				if dest.Address.String() != epIP || dest.Port != uint16(svcPort) {
 					t.Errorf("service Endpoint mismatch ipvs service destination")
 				}
 			}
@@ -324,7 +324,7 @@ func TestClusterIPNoEndpoint(t *testing.T) {
 	if len(services) != 1 {
 		t.Errorf("Expect 1 ipvs services, got %d", len(services))
 	} else {
-		if services[0].Address.To4().String() != svcIP || services[0].Port != uint16(svcPort) && services[0].Protocol == string(api.ProtocolTCP) {
+		if services[0].Address.String() != svcIP || services[0].Port != uint16(svcPort) && services[0].Protocol == string(api.ProtocolTCP) {
 			t.Errorf("Unexpected mismatch service")
 		} else {
 			destinations, _ := ipvs.GetRealServers(services[0])
@@ -382,13 +382,13 @@ func TestClusterIP(t *testing.T) {
 	if len(services) != 1 {
 		t.Errorf("Expect 1 ipvs services, got %d", len(services))
 	} else {
-		if services[0].Address.To4().String() != svcIP || services[0].Port != uint16(svcPort) && services[0].Protocol == string(api.ProtocolTCP) {
+		if services[0].Address.String() != svcIP || services[0].Port != uint16(svcPort) && services[0].Protocol == string(api.ProtocolTCP) {
 			t.Errorf("Unexpected mismatch service")
 		} else {
 			destinations, _ := ipvs.GetRealServers(services[0])
 			if len(destinations) != 1 {
 				t.Errorf("Unexpected %d destinations, expect 0 destinations", len(destinations))
-			} else if destinations[0].Address.To4().String() != epIP || destinations[0].Port != uint16(svcPort) {
+			} else if destinations[0].Address.String() != epIP || destinations[0].Port != uint16(svcPort) {
 				t.Errorf("Unexpected mismatch destinations")
 			}
 		}
@@ -435,7 +435,7 @@ func TestExternalIPsNoEndpoint(t *testing.T) {
 	}
 	found := false
 	for _, svc := range services {
-		if svc.Address.To4().String() == svcExternalIPs && svc.Port == uint16(svcPort) && svc.Protocol == string(api.ProtocolTCP) {
+		if svc.Address.String() == svcExternalIPs && svc.Port == uint16(svcPort) && svc.Protocol == string(api.ProtocolTCP) {
 			found = true
 			destinations, _ := ipvs.GetRealServers(svc)
 			if len(destinations) != 0 {
@@ -502,11 +502,11 @@ func TestExternalIPs(t *testing.T) {
 	}
 	found := false
 	for _, svc := range services {
-		if svc.Address.To4().String() == svcExternalIPs && svc.Port == uint16(svcPort) && svc.Protocol == string(api.ProtocolTCP) {
+		if svc.Address.String() == svcExternalIPs && svc.Port == uint16(svcPort) && svc.Protocol == string(api.ProtocolTCP) {
 			found = true
 			destinations, _ := ipvs.GetRealServers(svc)
 			for _, dest := range destinations {
-				if dest.Address.To4().String() != epIP || dest.Port != uint16(svcPort) {
+				if dest.Address.String() != epIP || dest.Port != uint16(svcPort) {
 					t.Errorf("service Endpoint mismatch ipvs service destination")
 				}
 			}
@@ -637,7 +637,7 @@ func TestOnlyLocalNodePorts(t *testing.T) {
 			if len(destinations) != 1 {
 				t.Errorf("Expect 1 ipvs destination, got %d", len(destinations))
 			} else {
-				if destinations[0].Address.To4().String() != epIP2 || destinations[0].Port != uint16(svcPort) {
+				if destinations[0].Address.String() != epIP2 || destinations[0].Port != uint16(svcPort) {
 					t.Errorf("service Endpoint mismatch ipvs service destination")
 				}
 			}

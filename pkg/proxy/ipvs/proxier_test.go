@@ -1,5 +1,3 @@
-// +build linux
-
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -242,8 +240,10 @@ func TestNodePort(t *testing.T) {
 func TestNodePortNoEndpoint(t *testing.T) {
 	ipt := iptablestest.NewFake()
 	ipvs := ipvstest.NewFake()
-	nodeIP := net.ParseIP("100.101.102.103")
-	fp := NewFakeProxier(ipt, ipvs, []net.IP{nodeIP})
+	nodeIPv4 := net.ParseIP("100.101.102.103")
+	nodeIPv6 := net.ParseIP("2001:db8::1:1")
+	nodeIPs := sets.NewString(nodeIPv4.String(), nodeIPv6.String())
+	fp := NewFakeProxier(ipt, ipvs, []net.IP{nodeIPv4, nodeIPv6})
 	svcIP := "10.20.30.41"
 	svcPort := 80
 	svcNodePort := 3001
@@ -273,12 +273,12 @@ func TestNodePortNoEndpoint(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to get ipvs services, err: %v", err)
 	}
-	if len(services) != 2 {
-		t.Errorf("Expect 2 ipvs services, got %d", len(services))
+	if len(services) != 3 {
+		t.Errorf("Expect 3 ipvs services, got %d", len(services))
 	}
 	found := false
 	for _, svc := range services {
-		if svc.Address.Equal(nodeIP) && svc.Port == uint16(svcNodePort) && svc.Protocol == string(api.ProtocolTCP) {
+		if nodeIPs.Has(svc.Address.String()) && svc.Port == uint16(svcNodePort) && svc.Protocol == string(api.ProtocolTCP) {
 			found = true
 			destinations, _ := ipvs.GetRealServers(svc)
 			if len(destinations) != 0 {

@@ -1265,6 +1265,7 @@ func (proxier *Proxier) syncProxyRules() {
 				// This currently works for loadbalancers that preserves source ips.
 				// For loadbalancers which direct traffic to service NodePort, the firewall rules will not apply.
 
+				// TODO: Replace with ipset
 				args = append(args[:0],
 					"-A", string(kubeServicesChain),
 					"-m", "comment", "--comment", fmt.Sprintf(`"%s loadbalancer IP"`, svcNameString),

@@ -1,4 +1,27 @@
-package(default_visibility = ["//visibility:public"])
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "ipset.go",
+        "types.go",
+    ],
+    importpath = "k8s.io/kubernetes/pkg/util/ipset",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/k8s.io/utils/exec:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["ipset_test.go"],
+    importpath = "k8s.io/kubernetes/pkg/util/ipset",
+    library = ":go_default_library",
+    deps = [
+        "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
+        "//vendor/k8s.io/utils/exec:go_default_library",
+        "//vendor/k8s.io/utils/exec/testing:go_default_library",
+    ],
+)
 
 filegroup(
     name = "package-srcs",
@@ -11,62 +34,8 @@ filegroup(
     name = "all-srcs",
     srcs = [
         ":package-srcs",
-        "//pkg/util/async:all-srcs",
-        "//pkg/util/bandwidth:all-srcs",
-        "//pkg/util/config:all-srcs",
-        "//pkg/util/configz:all-srcs",
-        "//pkg/util/dbus:all-srcs",
-        "//pkg/util/ebtables:all-srcs",
-        "//pkg/util/env:all-srcs",
-        "//pkg/util/file:all-srcs",
-        "//pkg/util/filesystem:all-srcs",
-        "//pkg/util/flock:all-srcs",
-        "//pkg/util/goroutinemap:all-srcs",
-        "//pkg/util/hash:all-srcs",
-        "//pkg/util/initsystem:all-srcs",
-        "//pkg/util/interrupt:all-srcs",
-        "//pkg/util/io:all-srcs",
-        "//pkg/util/ipconfig:all-srcs",
-        "//pkg/util/iptables:all-srcs",
-        "//pkg/util/ipvs:all-srcs",
-        "//pkg/util/keymutex:all-srcs",
-        "//pkg/util/labels:all-srcs",
-        "//pkg/util/limitwriter:all-srcs",
-        "//pkg/util/maps:all-srcs",
-        "//pkg/util/metrics:all-srcs",
-        "//pkg/util/mount:all-srcs",
-        "//pkg/util/net:all-srcs",
-        "//pkg/util/netsh:all-srcs",
-        "//pkg/util/node:all-srcs",
-        "//pkg/util/nsenter:all-srcs",
-        "//pkg/util/oom:all-srcs",
-        "//pkg/util/parsers:all-srcs",
-        "//pkg/util/pointer:all-srcs",
-        "//pkg/util/procfs:all-srcs",
-        "//pkg/util/reflector/prometheus:all-srcs",
-        "//pkg/util/removeall:all-srcs",
-        "//pkg/util/resourcecontainer:all-srcs",
-        "//pkg/util/rlimit:all-srcs",
-        "//pkg/util/selinux:all-srcs",
-        "//pkg/util/slice:all-srcs",
-        "//pkg/util/strings:all-srcs",
-        "//pkg/util/sysctl:all-srcs",
-        "//pkg/util/system:all-srcs",
-        "//pkg/util/tail:all-srcs",
-        "//pkg/util/taints:all-srcs",
-        "//pkg/util/template:all-srcs",
-        "//pkg/util/term:all-srcs",
-        "//pkg/util/threading:all-srcs",
-        "//pkg/util/tolerations:all-srcs",
-        "//pkg/util/version:all-srcs",
-        "//pkg/util/workqueue/prometheus:all-srcs",
+        "//pkg/util/ipset/testing:all-srcs",
     ],
     tags = ["automanaged"],
-)
-
-sh_test(
-    name = "verify-util-pkg",
-    size = "small",
-    srcs = ["verify-util-pkg.sh"],
-    data = glob(["*.go"]),
+    visibility = ["//visibility:public"],
 )

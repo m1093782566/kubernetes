@@ -55,6 +55,15 @@ func (fake *fakeIPTablesVersioner) GetVersion() (string, error) {
 	return fake.version, fake.err
 }
 
+type fakeIPSetVersioner struct {
+	version string // what to return
+	err     error  // what to return
+}
+
+func (fake *fakeIPSetVersioner) GetVersion() (string, error) {
+	return fake.version, fake.err
+}
+
 type fakeKernelCompatTester struct {
 	ok bool
 }
@@ -75,6 +84,8 @@ func Test_getProxyMode(t *testing.T) {
 		annotationKey   string
 		annotationVal   string
 		iptablesVersion string
+		ipsetVersion    string
+		ipsetError      error
 		kernelCompat    bool
 		iptablesError   error
 		expected        string
@@ -129,9 +140,10 @@ func Test_getProxyMode(t *testing.T) {
 		},
 	}
 	for i, c := range cases {
-		versioner := &fakeIPTablesVersioner{c.iptablesVersion, c.iptablesError}
+		iptversioner := &fakeIPTablesVersioner{c.iptablesVersion, c.iptablesError}
 		kcompater := &fakeKernelCompatTester{c.kernelCompat}
-		r := getProxyMode(c.flag, versioner, kcompater)
+		ipsetversioner := &fakeIPSetVersioner{c.ipsetVersion, c.ipsetError}
+		r := getProxyMode(c.flag, iptversioner, ipsetversioner, kcompater)
 		if r != c.expected {
 			t.Errorf("Case[%d] Expected %q, got %q", i, c.expected, r)
 		}

@@ -49,6 +49,7 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/metrics"
 	utilproxy "k8s.io/kubernetes/pkg/proxy/util"
 	"k8s.io/kubernetes/pkg/util/async"
+	utilipset "k8s.io/kubernetes/pkg/util/ipset"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilipvs "k8s.io/kubernetes/pkg/util/ipvs"
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
@@ -59,6 +60,9 @@ const (
 	// kubeServicesChain is the services portal chain
 	kubeServicesChain utiliptables.Chain = "KUBE-SERVICES"
 
+	// KubeServiceIPSetsChain is the services access IP chain
+	KubeServiceIPSetsChain utiliptables.Chain = "KUBE-SVC-IPSETS"
+
 	// kubePostroutingChain is the kubernetes postrouting chain
 	kubePostroutingChain utiliptables.Chain = "KUBE-POSTROUTING"
 
@@ -67,11 +71,10 @@ const (
 
 	// KubeMarkDropChain is the mark-for-drop chain
 	KubeMarkDropChain utiliptables.Chain = "KUBE-MARK-DROP"
-)
 
-const (
 	// DefaultScheduler is the default ipvs scheduler algorithm - round robin.
 	DefaultScheduler = "rr"
+
 	// DefaultDummyDevice is the default dummy interface where ipvs service address will bind to it.
 	DefaultDummyDevice = "kube-ipvs0"
 )
@@ -117,6 +120,7 @@ type Proxier struct {
 	minSyncPeriod  time.Duration
 	iptables       utiliptables.Interface
 	ipvs           utilipvs.Interface
+	ipset          utilipset.Interface
 	exec           utilexec.Interface
 	masqueradeAll  bool
 	masqueradeMark string
@@ -137,6 +141,13 @@ type Proxier struct {
 	natRules     *bytes.Buffer
 	// Added as a member to the struct to allow injection for testing.
 	netlinkHandle NetLinkHandle
+	// ip sets
+	kubeServiceAccessSet *IPSet
+	loopBackSet          *IPSet
+	masqAllSet           *IPSet
+	clusterCIDRSet       *IPSet
+	nodePortSetTCP       *IPSet
+	nodePortSetUDP       *IPSet
 }
 
 // IPGetter helps get node network interface IP
@@ -184,7 +195,9 @@ var _ proxy.ProxyProvider = &Proxier{}
 // An error will be returned if it fails to update or acquire the initial lock.
 // Once a proxier is created, it will keep iptables and ipvs rules up to date in the background and
 // will not terminate if a particular iptables or ipvs call fails.
-func NewProxier(ipt utiliptables.Interface, ipvs utilipvs.Interface,
+func NewProxier(ipt utiliptables.Interface,
+	ipvs utilipvs.Interface,
+	ipset utilipset.Interface,
 	sysctl utilsysctl.Interface,
 	exec utilexec.Interface,
 	syncPeriod time.Duration,
@@ -248,32 +261,43 @@ func NewProxier(ipt utiliptables.Interface, ipvs utilipvs.Interface,
 
 	healthChecker := healthcheck.NewServer(hostname, recorder, nil, nil) // use default implementations of deps
 
+	isIPv6 := utilproxy.IsIPv6(nodeIP)
+
+	glog.V(2).Infof("nodeIP: %v, isIPv6: %v", nodeIP, isIPv6)
+
 	proxier := &Proxier{
-		portsMap:         make(map[utilproxy.LocalPort]utilproxy.Closeable),
-		serviceMap:       make(proxyServiceMap),
-		serviceChanges:   newServiceChangeMap(),
-		endpointsMap:     make(proxyEndpointsMap),
-		endpointsChanges: newEndpointsChangeMap(hostname),
-		syncPeriod:       syncPeriod,
-		minSyncPeriod:    minSyncPeriod,
-		iptables:         ipt,
-		masqueradeAll:    masqueradeAll,
-		masqueradeMark:   masqueradeMark,
-		exec:             exec,
-		clusterCIDR:      clusterCIDR,
-		hostname:         hostname,
-		nodeIP:           nodeIP,
-		portMapper:       &listenPortOpener{},
-		recorder:         recorder,
-		healthChecker:    healthChecker,
-		healthzServer:    healthzServer,
-		ipvs:             ipvs,
-		ipvsScheduler:    scheduler,
-		ipGetter:         &realIPGetter{},
-		iptablesData:     bytes.NewBuffer(nil),
-		natChains:        bytes.NewBuffer(nil),
-		natRules:         bytes.NewBuffer(nil),
-		netlinkHandle:    NewNetLinkHandle(),
+		portsMap:             make(map[utilproxy.LocalPort]utilproxy.Closeable),
+		serviceMap:           make(proxyServiceMap),
+		serviceChanges:       newServiceChangeMap(),
+		endpointsMap:         make(proxyEndpointsMap),
+		endpointsChanges:     newEndpointsChangeMap(hostname),
+		syncPeriod:           syncPeriod,
+		minSyncPeriod:        minSyncPeriod,
+		iptables:             ipt,
+		masqueradeAll:        masqueradeAll,
+		masqueradeMark:       masqueradeMark,
+		exec:                 exec,
+		clusterCIDR:          clusterCIDR,
+		hostname:             hostname,
+		nodeIP:               nodeIP,
+		portMapper:           &listenPortOpener{},
+		recorder:             recorder,
+		healthChecker:        healthChecker,
+		healthzServer:        healthzServer,
+		ipvs:                 ipvs,
+		ipvsScheduler:        scheduler,
+		ipGetter:             &realIPGetter{},
+		iptablesData:         bytes.NewBuffer(nil),
+		natChains:            bytes.NewBuffer(nil),
+		natRules:             bytes.NewBuffer(nil),
+		netlinkHandle:        NewNetLinkHandle(),
+		ipset:                ipset,
+		kubeServiceAccessSet: NewIPSet(ipset, KubeServiceAccessSet, utilipset.HashIpPort, isIPv6),
+		loopBackSet:          NewIPSet(ipset, KubeLoopBackIPSet, utilipset.HashIp, isIPv6),
+		masqAllSet:           NewIPSet(ipset, KubeMasqAllIPSet, utilipset.HashIpPort, isIPv6),
+		clusterCIDRSet:       NewIPSet(ipset, KubeClusterCIDRIPSet, utilipset.HashIpPort, isIPv6),
+		nodePortSetTCP:       NewIPSet(ipset, KubeNodePortSetTCP, utilipset.BitmapPort, false),
+		nodePortSetUDP:       NewIPSet(ipset, KubeNodePortSetUDP, utilipset.BitmapPort, false),
 	}
 	burstSyncs := 2
 	glog.V(3).Infof("minSyncPeriod: %v, syncPeriod: %v, burstSyncs: %d", minSyncPeriod, syncPeriod, burstSyncs)
@@ -648,11 +672,12 @@ func (em proxyEndpointsMap) unmerge(other proxyEndpointsMap) {
 	}
 }
 
+// TODO: UT it
 // CanUseIPVSProxier returns true if we can use the ipvs Proxier.
 // This is determined by checking if all the required kernel modules can be loaded. It may
 // return an error if it fails to get the kernel modules information without error, in which
 // case it will also return false.
-func CanUseIPVSProxier() (bool, error) {
+func CanUseIPVSProxier(ipsetver IPSetVersioner) (bool, error) {
 	// Try to load IPVS required kernel modules using modprobe
 	for _, kmod := range ipvsModules {
 		err := utilexec.New().Command("modprobe", "--", kmod).Run()
@@ -676,6 +701,15 @@ func CanUseIPVSProxier() (bool, error) {
 	modules := wantModules.Difference(loadModules).List()
 	if len(modules) != 0 {
 		return false, fmt.Errorf("IPVS proxier will not be used because the following required kernel modules are not loaded: %v", modules)
+	}
+
+	// Check ipset version
+	versionString, err := ipsetver.GetVersion()
+	if err != nil {
+		return false, fmt.Errorf("error getting ipset version, error: %v", err)
+	}
+	if !checkMinVersion(versionString) {
+		return false, fmt.Errorf("ipset version: %s is less than min required version: %s", versionString, MinIPSetCheckVersion)
 	}
 	return true, nil
 }
@@ -728,7 +762,7 @@ func cleanupIptablesLeftovers(ipt utiliptables.Interface) (encounteredError bool
 		natRules := bytes.NewBuffer(nil)
 		writeLine(natChains, "*nat")
 		// Start with chains we know we need to remove.
-		for _, chain := range []utiliptables.Chain{kubeServicesChain, kubePostroutingChain, KubeMarkMasqChain} {
+		for _, chain := range []utiliptables.Chain{kubeServicesChain, kubePostroutingChain, KubeMarkMasqChain, KubeServiceIPSetsChain} {
 			if _, found := existingNATChains[chain]; found {
 				chainString := string(chain)
 				writeLine(natChains, existingNATChains[chain]) // flush
@@ -748,7 +782,7 @@ func cleanupIptablesLeftovers(ipt utiliptables.Interface) (encounteredError bool
 }
 
 // CleanupLeftovers clean up all ipvs and iptables rules created by ipvs Proxier.
-func CleanupLeftovers(execer utilexec.Interface, ipvs utilipvs.Interface, ipt utiliptables.Interface) (encounteredError bool) {
+func CleanupLeftovers(execer utilexec.Interface, ipvs utilipvs.Interface, ipt utiliptables.Interface, ipset utilipset.Interface) (encounteredError bool) {
 	// Return immediately when ipvs interface is nil - Probably initialization failed in somewhere.
 	if ipvs == nil {
 		return true
@@ -767,6 +801,14 @@ func CleanupLeftovers(execer utilexec.Interface, ipvs utilipvs.Interface, ipt ut
 	}
 	// Clear iptables created by ipvs Proxier.
 	encounteredError = cleanupIptablesLeftovers(ipt) || encounteredError
+	// Destroy ip sets created by ipvs Proxier.  We should call it after cleaning up iptables.
+	ipSetsToDestroy := []string{KubeServiceAccessSet, KubeLoopBackIPSet, KubeMasqAllIPSet, KubeClusterCIDRIPSet, KubeNodePortSetTCP, KubeNodePortSetUDP}
+	for _, set := range ipSetsToDestroy {
+		err = ipset.DestroySet(set)
+		if err != nil {
+			encounteredError = true
+		}
+	}
 	return encounteredError
 }
 
@@ -956,6 +998,15 @@ func (proxier *Proxier) syncProxyRules() {
 		return
 	}
 
+	// make sure ip sets exists in the system.
+	ipSets := []*IPSet{proxier.loopBackSet, proxier.masqAllSet, proxier.clusterCIDRSet, proxier.nodePortSetUDP, proxier.nodePortSetTCP, proxier.kubeServiceAccessSet}
+	if err := ensureIPSets(ipSets...); err != nil {
+		return
+	}
+	for i := range ipSets {
+		ipSets[i].resetEntries()
+	}
+
 	// Accumulate the set of local ports that we will be holding open once this update is complete
 	replacementPortsMap := map[utilproxy.LocalPort]utilproxy.Closeable{}
 	// activeIPVSServices represents IPVS service successfully created in this round of sync
@@ -975,14 +1026,48 @@ func (proxier *Proxier) syncProxyRules() {
 	// is just for efficiency, not correctness.
 	args := make([]string, 64)
 
+	// Kube service portal
+	if err := proxier.linkKubeServiceChain(existingNATChains, proxier.natChains); err != nil {
+		glog.Errorf("Failed to link KUBE-SERVICES chain: %v", err)
+		return
+	}
+	// Kube service ipset
+	if err := proxier.linkKubeIPSetsChain(existingNATChains, proxier.natChains); err != nil {
+		glog.Errorf("Failed to link KUBE-SERVICES chain: %v", err)
+		return
+	}
+
 	// Build IPVS rules for each service.
 	for svcName, svcInfo := range proxier.serviceMap {
+		//Handle traffic that loops back to the originator with SNAT.
+		for _, ep := range proxier.endpointsMap[svcName] {
+			epIP := ep.IPPart()
+			// Error parsing this endpoint has been logged. Skip to next endpoint.
+			if epIP == "" {
+				continue
+			}
+			entry := &utilipset.Entry{
+				IP:      epIP,
+				SetType: utilipset.HashIp,
+			}
+			proxier.loopBackSet.activeEntries.Insert(entry.String())
+		}
+
 		protocol := strings.ToLower(string(svcInfo.protocol))
 		// Precompute svcNameString; with many services the many calls
 		// to ServicePortName.String() show up in CPU profiles.
 		svcNameString := svcName.String()
 
 		// Capture the clusterIP.
+		// ipset call
+		entry := &utilipset.Entry{
+			IP:       svcInfo.clusterIP.String(),
+			Port:     svcInfo.port,
+			Protocol: protocol,
+			SetType:  utilipset.HashIpPort,
+		}
+		proxier.kubeServiceAccessSet.activeEntries.Insert(entry.String())
+		// ipvs call
 		serv := &utilipvs.VirtualServer{
 			Address:   svcInfo.clusterIP,
 			Port:      uint16(svcInfo.port),
@@ -1004,30 +1089,15 @@ func (proxier *Proxier) syncProxyRules() {
 			glog.Errorf("Failed to sync service: %v, err: %v", serv, err)
 		}
 		// Install masquerade rules if 'masqueradeAll' or 'clusterCIDR' is specified.
-		args = append(args[:0],
-			"-A", string(kubeServicesChain),
-			"-m", "comment", "--comment", fmt.Sprintf(`"%s cluster IP"`, svcNameString),
-			"-m", protocol, "-p", protocol,
-			"-d", utilproxy.ToCIDR(svcInfo.clusterIP),
-			"--dport", strconv.Itoa(svcInfo.port),
-		)
 		if proxier.masqueradeAll {
-			err = proxier.linkKubeServiceChain(existingNATChains, proxier.natChains)
-			if err != nil {
-				glog.Errorf("Failed to link KUBE-SERVICES chain: %v", err)
-			}
-			writeLine(proxier.natRules, append(args, "-j", string(KubeMarkMasqChain))...)
+			proxier.masqAllSet.activeEntries.Insert(entry.String())
 		} else if len(proxier.clusterCIDR) > 0 {
 			// This masquerades off-cluster traffic to a service VIP.  The idea
 			// is that you can establish a static route for your Service range,
 			// routing to any node, and that node will bridge into the Service
 			// for you.  Since that might bounce off-node, we masquerade here.
 			// If/when we support "Local" policy for VIPs, we should update this.
-			err = proxier.linkKubeServiceChain(existingNATChains, proxier.natChains)
-			if err != nil {
-				glog.Errorf("Failed to link KUBE-SERVICES chain: %v", err)
-			}
-			writeLine(proxier.natRules, append(args, "! -s", proxier.clusterCIDR, "-j", string(KubeMarkMasqChain))...)
+			proxier.clusterCIDRSet.activeEntries.Insert(entry.String())
 		}
 
 		// Capture externalIPs.
@@ -1063,6 +1133,9 @@ func (proxier *Proxier) syncProxyRules() {
 				}
 			} // We're holding the port, so it's OK to install IPVS rules.
 
+			// TODO: ipset call?
+
+			// ipvs call
 			serv := &utilipvs.VirtualServer{
 				Address:   net.ParseIP(externalIP),
 				Port:      uint16(svcInfo.port),
@@ -1088,10 +1161,7 @@ func (proxier *Proxier) syncProxyRules() {
 		for _, ingress := range svcInfo.loadBalancerStatus.Ingress {
 			if ingress.IP != "" {
 				if len(svcInfo.loadBalancerSourceRanges) != 0 {
-					err = proxier.linkKubeServiceChain(existingNATChains, proxier.natChains)
-					if err != nil {
-						glog.Errorf("Failed to link KUBE-SERVICES chain: %v", err)
-					}
+					// TODO: ipset call?
 					// The service firewall rules are created based on ServiceSpec.loadBalancerSourceRanges field.
 					// This currently works for loadbalancers that preserves source ips.
 					// For loadbalancers which direct traffic to service NodePort, the firewall rules will not apply.
@@ -1175,6 +1245,15 @@ func (proxier *Proxier) syncProxyRules() {
 				glog.Errorf("Failed to get node IP, err: %v", err)
 			} else {
 				for _, nodeIP := range nodeIPs {
+					// ipset call
+					entry = &utilipset.Entry{
+						IP:       nodeIP.String(),
+						Port:     svcInfo.nodePort,
+						Protocol: protocol,
+						SetType:  utilipset.HashIpPort,
+					}
+					proxier.kubeServiceAccessSet.activeEntries.Insert(entry.String())
+					// ipvs call
 					serv := &utilipvs.VirtualServer{
 						Address:   nodeIP,
 						Port:      uint16(svcInfo.nodePort),
@@ -1194,9 +1273,85 @@ func (proxier *Proxier) syncProxyRules() {
 					} else {
 						glog.Errorf("Failed to sync service: %v, err: %v", serv, err)
 					}
+					// Nodeports need SNAT, unless they're local.
+					if !svcInfo.onlyNodeLocalEndpoints {
+						entry = &utilipset.Entry{
+							// No need to provide ip info
+							Port:     svcInfo.nodePort,
+							Protocol: protocol,
+							SetType:  utilipset.BitmapPort,
+						}
+						switch protocol {
+						case "tcp":
+							proxier.nodePortSetTCP.activeEntries.Insert(entry.String())
+						case "udp":
+							proxier.nodePortSetUDP.activeEntries.Insert(entry.String())
+						default:
+							glog.Errorf("Unsupported protocol type: %s", protocol)
+						}
+					}
 				}
 			}
 		}
+	}
+
+	// sync ipset entries
+	ipsetsToSync := []*IPSet{proxier.kubeServiceAccessSet, proxier.loopBackSet, proxier.masqAllSet, proxier.clusterCIDRSet, proxier.nodePortSetTCP, proxier.nodePortSetUDP}
+	for i := range ipsetsToSync {
+		ipsetsToSync[i].syncIPSetEntries()
+	}
+
+	// Tail call iptables rules for ipset, make sure only call iptables once
+	// in a single loop per ip set
+	if !proxier.kubeServiceAccessSet.isEmpty() {
+		args = append(args[:0],
+			"-A", string(kubeServicesChain),
+			"-m", "set", "--match-set", proxier.kubeServiceAccessSet.Name,
+			"dst,dst",
+		)
+		writeLine(proxier.natRules, append(args, "-j", string(KubeServiceIPSetsChain))...)
+	}
+	if !proxier.loopBackSet.isEmpty() {
+		args = append(args[:0],
+			"-A", string(KubeServiceIPSetsChain),
+			"-m", "set", "--match-set", proxier.loopBackSet.Name,
+			"src",
+		)
+		writeLine(proxier.natRules, append(args, "-j", string(KubeMarkMasqChain))...)
+	}
+	if !proxier.masqAllSet.isEmpty() {
+		args = append(args[:0],
+			"-A", string(KubeServiceIPSetsChain),
+			"-m", "set", "--match-set", proxier.masqAllSet.Name,
+			"dst,dst",
+		)
+		writeLine(proxier.natRules, append(args, "-j", string(KubeMarkMasqChain))...)
+	}
+	if !proxier.clusterCIDRSet.isEmpty() {
+		args = append(args[:0],
+			"-A", string(KubeServiceIPSetsChain),
+			"-m", "set", "--match-set", proxier.clusterCIDRSet.Name,
+			"dst,dst",
+		)
+		writeLine(proxier.natRules, append(args, "! -s", proxier.clusterCIDR, "-j", string(KubeMarkMasqChain))...)
+	}
+	if !proxier.nodePortSetTCP.isEmpty() {
+		args = append(args[:0],
+			"-A", string(KubeServiceIPSetsChain),
+			"-m", "tcp", "-p", "tcp",
+			"-m", "set", "--match-set", proxier.nodePortSetTCP.Name,
+			"dst",
+		)
+		writeLine(proxier.natRules, append(args, "-j", string(KubeMarkMasqChain))...)
+	}
+	if !proxier.nodePortSetUDP.isEmpty() {
+		args = append(args[:0],
+			"-A", string(KubeServiceIPSetsChain),
+			"-m", "udp", "-p", "udp",
+			"-m", "set", "--match-set", proxier.nodePortSetUDP.Name,
+			"dst",
+		)
+		writeLine(proxier.natRules, append(args, "-j", string(KubeMarkMasqChain))...)
 	}
 
 	// Write the end-of-table markers.
@@ -1410,7 +1565,6 @@ func (proxier *Proxier) cleanLegacyService(atciveServices map[string]bool, curre
 }
 
 // linkKubeServiceChain will Create chain KUBE-SERVICES and link the chin in PREROUTING and OUTPUT
-// If not specify masqueradeAll or clusterCIDR or LB source range, won't create them.
 
 // Chain PREROUTING (policy ACCEPT)
 // target            prot opt source               destination
@@ -1446,6 +1600,37 @@ func (proxier *Proxier) linkKubeServiceChain(existingNATChains map[utiliptables.
 		writeLine(natChains, chain)
 	} else {
 		writeLine(natChains, utiliptables.MakeChainLine(kubeServicesChain))
+	}
+	return nil
+}
+
+// linkKubeIPSetsChain will Create chain KUBE-SVC-IPSETS and link the chin in KUBE-SERVICES
+
+// Chain KUBE-SERVICES (policy ACCEPT)
+// target            prot opt source               destination
+// KUBE-SVC-IPSETS   all  --  0.0.0.0/0            0.0.0.0/0     match-set KUBE-SERVICE-ACCESS dst,dst
+
+// Chain KUBE-SVC-IPSETS (1 references)
+// target     prot opt source               destination
+// KUBE-MARK-MASQ  all  --  0.0.0.0/0            0.0.0.0/0            match-set KUBE-NODE-PORT dst,dst
+// TODO: more chains...
+func (proxier *Proxier) linkKubeIPSetsChain(existingNATChains map[utiliptables.Chain]string, natChains *bytes.Buffer) error {
+	if _, err := proxier.iptables.EnsureChain(utiliptables.TableNAT, KubeServiceIPSetsChain); err != nil {
+		return fmt.Errorf("Failed to ensure that %s chain %s exists: %v", utiliptables.TableNAT, KubeServiceIPSetsChain, err)
+	}
+
+	// TODO: iptables comment message for ipset
+	args := []string{"-m", "set", "--match-set", proxier.kubeServiceAccessSet.Name, "dst,dst", "-j", string(KubeServiceIPSetsChain)}
+	if _, err := proxier.iptables.EnsureRule(utiliptables.Prepend, utiliptables.TableNAT, kubeServicesChain, args...); err != nil {
+		return fmt.Errorf("Failed to ensure that ipset %s chain %s jumps to %s: %v", proxier.kubeServiceAccessSet.Name, kubeServicesChain, KubeServiceIPSetsChain, err)
+	}
+
+	// equal to `iptables -t nat -N KUBE-SVC-IPSETS`
+	// write `:KUBE-SERVICES - [0:0]` in nat table
+	if chain, ok := existingNATChains[KubeServiceIPSetsChain]; ok {
+		writeLine(natChains, chain)
+	} else {
+		writeLine(natChains, utiliptables.MakeChainLine(KubeServiceIPSetsChain))
 	}
 	return nil
 }

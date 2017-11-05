@@ -8,7 +8,10 @@ load(
 
 go_test(
     name = "go_default_test",
-    srcs = ["proxier_test.go"],
+    srcs = [
+        "ipset_test.go",
+        "proxier_test.go",
+    ],
     importpath = "k8s.io/kubernetes/pkg/proxy/ipvs",
     library = ":go_default_library",
     deps = [
@@ -16,6 +19,8 @@ go_test(
         "//pkg/proxy:go_default_library",
         "//pkg/proxy/ipvs/testing:go_default_library",
         "//pkg/proxy/util:go_default_library",
+        "//pkg/util/ipset:go_default_library",
+        "//pkg/util/ipset/testing:go_default_library",
         "//pkg/util/iptables:go_default_library",
         "//pkg/util/iptables/testing:go_default_library",
         "//pkg/util/ipvs:go_default_library",
@@ -33,6 +38,7 @@ go_test(
 go_library(
     name = "go_default_library",
     srcs = [
+        "ipset.go",
         "netlink.go",
         "netlink_unsupported.go",
         "proxier.go",
@@ -53,9 +59,11 @@ go_library(
         "//pkg/proxy/metrics:go_default_library",
         "//pkg/proxy/util:go_default_library",
         "//pkg/util/async:go_default_library",
+        "//pkg/util/ipset:go_default_library",
         "//pkg/util/iptables:go_default_library",
         "//pkg/util/ipvs:go_default_library",
         "//pkg/util/sysctl:go_default_library",
+        "//pkg/util/version:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",

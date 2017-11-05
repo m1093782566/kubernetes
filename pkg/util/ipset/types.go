@@ -16,29 +16,40 @@ limitations under the License.
 
 package ipset
 
+// IPSetType represents the ipset type
 type IPSetType string
 
 const (
+	// HashIpPort represents the `hash:ip,port` type ipset
 	HashIpPort IPSetType = "hash:ip,port"
+	// HashIpPort represents the `hash:ip` type ipset
 	HashIp     IPSetType = "hash:ip"
+	// HashIpPort represents the `bitmap:port` type ipset
 	BitmapPort IPSetType = "bitmap:port"
 )
 
+// DefaultPortRange defines the default bitmap:port valid port range.
 const DefaultPortRange string = "0-65535"
 
 const (
+	// ProtocolFamilyIPV4 represents IPv4 protocol.
 	ProtocolFamilyIPV4 = "inet"
+	// ProtocolFamilyIPV6 represents IPv6 protocol.
 	ProtocolFamilyIPV6 = "inet6"
+	// ProtocolTCP represents TCP protocol.
 	ProtocolTCP        = "tcp"
+	// ProtocolUDP represents UDP protocol.
 	ProtocolUDP        = "udp"
 )
 
+// ValidIPSetTypes defines the supported ip set type.
 var ValidIPSetTypes = []IPSetType{
 	HashIpPort,
 	HashIp,
 	BitmapPort,
 }
 
+// IsValidIPSetType checks if the given ipset type is valid.
 func IsValidIPSetType(set IPSetType) bool {
 	for _, valid := range ValidIPSetTypes {
 		if set == valid {

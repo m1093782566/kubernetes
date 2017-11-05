@@ -28,13 +28,13 @@ import (
 
 // Interface is an injectable interface for running ipset commands.  Implementations must be goroutine-safe.
 type Interface interface {
-	// FlushSet deletes all entries from a named set
+	// FlushSet deletes all entries from a named set.
 	FlushSet(set string) error
-	// DestroySet deletes a named set
+	// DestroySet deletes a named set.
 	DestroySet(set string) error
-	// DestroyAllSets deletes all sets
+	// DestroyAllSets deletes all sets.
 	DestroyAllSets() error
-	// CreateSet creates a new set -> EnsureSet()?
+	// CreateSet creates a new set,  it will ignore error when the set already exists if ignoreExistErr=true.
 	CreateSet(set *IPSet, ignoreExistErr bool) error
 	// AddEntry adds a new entry to the named set.
 	AddEntry(entry string, set string, ignoreExistErr bool) error
@@ -62,6 +62,7 @@ type IPSet struct {
 	PortRange  string
 }
 
+// Entry represents a ipset entry.
 type Entry struct {
 	IP       string
 	Port     int
@@ -97,6 +98,7 @@ func New(exec utilexec.Interface) Interface {
 	}
 }
 
+// CreateSet creates a new set,  it will ignore error when the set already exists if ignoreExistErr=true.
 func (runner *runner) CreateSet(set *IPSet, ignoreExistErr bool) error {
 	// Using default values.
 	if set.HashSize == 0 {
@@ -157,6 +159,7 @@ func (runner *runner) createSet(set *IPSet, ignoreExistErr bool) error {
 	return nil
 }
 
+// AddEntry adds a new entry to the named set.
 // If the -exist option is specified, ipset ignores the error otherwise raised when
 // the same set (setname and create parameters are identical) already exists.
 func (runner *runner) AddEntry(entry string, set string, ignoreExistErr bool) error {
@@ -173,7 +176,7 @@ func (runner *runner) AddEntry(entry string, set string, ignoreExistErr bool) er
 	return nil
 }
 
-// Del is used to delete the specified entry from the set.
+// DelEntry is used to delete the specified entry from the set.
 func (runner *runner) DelEntry(entry string, set string) error {
 	_, err := runner.exec.Command(IPSetCmd, "del", set, entry).CombinedOutput()
 	if err != nil {
@@ -182,7 +185,7 @@ func (runner *runner) DelEntry(entry string, set string) error {
 	return nil
 }
 
-// Test is used to check whether the specified entry is in the set or not.
+// TestEntry is used to check whether the specified entry is in the set or not.
 func (runner *runner) TestEntry(entry string, set string) (bool, error) {
 	out, err := runner.exec.Command(IPSetCmd, "test", set, entry).CombinedOutput()
 	if err == nil {
@@ -199,6 +202,7 @@ func (runner *runner) TestEntry(entry string, set string) (bool, error) {
 	}
 }
 
+// FlushSet deletes all entries from a named set.
 func (runner *runner) FlushSet(set string) error {
 	_, err := runner.exec.Command(IPSetCmd, "flush", set).CombinedOutput()
 	if err != nil {
@@ -225,6 +229,7 @@ func (runner *runner) DestroyAllSets() error {
 	return nil
 }
 
+// ListSets list all set names from kernel
 func (runner *runner) ListSets() ([]string, error) {
 	out, err := runner.exec.Command(IPSetCmd, "list", "-n").CombinedOutput()
 	if err != nil {
@@ -233,6 +238,8 @@ func (runner *runner) ListSets() ([]string, error) {
 	return strings.Split(string(out), "\n"), nil
 }
 
+// ListEntries lists all the entries from a named set.  The raw output of ipset command
+// `ipset list {set}` looks like,
 //Name: foobar
 //Type: hash:ip,port
 //Revision: 2
@@ -242,7 +249,6 @@ func (runner *runner) ListSets() ([]string, error) {
 //Members:
 //192.168.1.2,tcp:8080
 //192.168.1.1,udp:53
-// ListEntries lists all the entries from a named set
 func (runner *runner) ListEntries(set string) ([]string, error) {
 	if len(set) == 0 {
 		return nil, fmt.Errorf("set name can't be nil")

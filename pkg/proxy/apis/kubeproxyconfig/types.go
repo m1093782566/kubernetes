@@ -150,6 +150,15 @@ type KubeProxyConfiguration struct {
 	// configSyncPeriod is how often configuration from the apiserver is refreshed. Must be greater
 	// than 0.
 	ConfigSyncPeriod metav1.Duration
+	// nodePortAddresses is the --nodeport-addresses value for kube-proxy process. Values must be either
+	// IP blocks or "default-route". These values are as a parameter to select the interfaces where nodeport works.
+	// In case someone would like to expose a service on localhost for local visit and some other interfaces for
+	// particular purpose, a list of IP blocks would do that.
+	// If set it to "127.0.0.0/8", kube-proxy will only select the loopback interface for NodePort.
+	// If set it to "default-route", kube-proxy will select the "who has the default route" interfaces.
+	// If set it to a non-zero IP block, kube-proxy will filter that down to just the IPs that applied to the node.
+	// An empty string is considered as invalid.
+	NodePortAddresses []string
 }
 
 // Currently, four modes of proxying are available total: 'userspace' (older, stable), 'iptables'
@@ -166,6 +175,13 @@ const (
 	ProxyModeIPTables    ProxyMode = "iptables"
 	ProxyModeIPVS        ProxyMode = "ipvs"
 	ProxyModeKernelspace ProxyMode = "kernelspace"
+)
+
+type InterfaceType string
+
+const (
+	DefaultRoute  InterfaceType = "default-route"
+	AllInterfaces InterfaceType = "all-interfaces"
 )
 
 // IPVSSchedulerMethod is the algorithm for allocating TCP connections and

@@ -43,6 +43,7 @@ func Funcs(codecs runtimeserializer.CodecFactory) []interface{} {
 			obj.MetricsBindAddress = fmt.Sprintf("%d.%d.%d.%d:%d", c.Intn(256), c.Intn(256), c.Intn(256), c.Intn(256), c.Intn(65536))
 			obj.OOMScoreAdj = utilpointer.Int32Ptr(c.Int31())
 			obj.ResourceContainer = c.RandString()
+			obj.NodePortAddresses = []string{"all-interfaces"}
 		},
 	}
 }

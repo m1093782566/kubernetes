@@ -116,4 +116,8 @@ func SetDefaults_KubeProxyConfiguration(obj *KubeProxyConfiguration) {
 	if obj.ClientConnection.Burst == 0 {
 		obj.ClientConnection.Burst = 10
 	}
+
+	if len(obj.NodePortAddresses) == 0 {
+		obj.NodePortAddresses = []string{"all-interfaces"}
+	}
 }

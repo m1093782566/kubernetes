@@ -166,6 +166,8 @@ func AddFlags(options *Options, fs *pflag.FlagSet) {
 		"NAT timeout for TCP connections in the CLOSE_WAIT state")
 	fs.BoolVar(&options.config.EnableProfiling, "profiling", options.config.EnableProfiling, "If true enables profiling via web interface on /debug/pprof handler.")
 	fs.StringVar(&options.config.IPVS.Scheduler, "ipvs-scheduler", options.config.IPVS.Scheduler, "The ipvs scheduler type when proxy mode is ipvs")
+	fs.StringSliceVar(&options.config.NodePortAddresses, "nodeport-addresses", options.config.NodePortAddresses,
+		"Values are as a parameter to select the interfaces where nodeport works. Values must be either IP blocks or `default-route` or `all-interfaces`, default to `all-interfaces` cover all network interfaces")
 	utilfeature.DefaultFeatureGate.AddFlag(fs)
 }
 

@@ -108,7 +108,8 @@ func Funcs(codecs runtimeserializer.CodecFactory) []interface{} {
 						TCPEstablishedTimeout: &metav1.Duration{Duration: 5},
 						TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5},
 					},
-					ConfigSyncPeriod: metav1.Duration{Duration: 1},
+					ConfigSyncPeriod:  metav1.Duration{Duration: 1},
+					NodePortAddresses: []string{"all-interfaces"},
 				},
 			}
 		},

@@ -339,17 +339,17 @@ func (plugin *cniNetworkPlugin) buildCNIRuntimeConf(podName string, podNs string
 
 	ingress, egress, err := bandwidth.ExtractPodBandwidthResources(annotations)
 	if err != nil {
-		return fmt.Errorf("Error reading pod bandwidth annotations: %v", err)
+		return nil, fmt.Errorf("Error reading pod bandwidth annotations: %v", err)
 	}
 	if ingress != nil || egress != nil {
 		bandwidthParam := cniBandwidthEntry{}
 		if ingress != nil {
-			bandwidthParam.IngressRate = ingress.Value() / 1000
-			bandwidthParam.EgressBurst = ingress.Value() / 1000
+			bandwidthParam.IngressRate = int(ingress.Value() / 1000)
+			bandwidthParam.EgressBurst = int(ingress.Value() / 1000)
 		}
 		if egress != nil {
-			bandwidthParam.EgressRate = egress.Value() / 1000
-			bandwidthParam.EgressBurst = egress.Value() / 1000
+			bandwidthParam.EgressRate = int(egress.Value() / 1000)
+			bandwidthParam.EgressBurst = int(egress.Value() / 1000)
 		}
 		rt.CapabilityArgs["bandwidth"] = bandwidthParam
 	}

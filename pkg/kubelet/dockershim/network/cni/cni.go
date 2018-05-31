@@ -72,16 +72,16 @@ type cniPortMapping struct {
 // cniBandwidthEntry maps to the standard CNI bandwidth Capability
 // see: https://github.com/containernetworking/cni/blob/master/CONVENTIONS.md
 type cniBandwidthEntry struct {
-	// IngressRate is the bandwidth rate in Kbps for traffic through container. 0 for no limit. If ingressRate is set, ingressBurst must also be set
-	IngressRate int `json:"ingressRate"`
-	// IngressBurst is the bandwidth burst in Kb for traffic through container. 0 for no limit. If ingressBurst is set, ingressRate must also be set
+	// IngressRate is the bandwidth rate in bps for traffic through container. 0 for no limit. If ingressRate is set, ingressBurst must also be set
+	IngressRate int `json:"ingressRate,omitempty"`
+	// IngressBurst is the bandwidth burst in b for traffic through container. 0 for no limit. If ingressBurst is set, ingressRate must also be set
 	// NOTE: it's not used for now.
-	IngressBurst int `json:"ingressBurst"`
-	// EgressRate is the bandwidth is the bandwidth rate in Kbps for traffic through container. 0 for no limit. If egressRate is set, egressBurst must also be set
-	EgressRate int `json:"egressRate"`
-	// EgressBurst is the bandwidth burst in Kb for traffic through container. 0 for no limit. If egressBurst is set, egressRate must also be set
+	IngressBurst int `json:"ingressBurst,omitempty"`
+	// EgressRate is the bandwidth is the bandwidth rate in bps for traffic through container. 0 for no limit. If egressRate is set, egressBurst must also be set
+	EgressRate int `json:"egressRate,omitempty"`
+	// EgressBurst is the bandwidth burst in b for traffic through container. 0 for no limit. If egressBurst is set, egressRate must also be set
 	// NOTE: it's not used for now.
-	EgressBurst int `json:"egressBurst"`
+	EgressBurst int `json:"egressBurst,omitempty"`
 }
 
 func SplitDirs(dirs string) []string {
@@ -344,12 +344,12 @@ func (plugin *cniNetworkPlugin) buildCNIRuntimeConf(podName string, podNs string
 	if ingress != nil || egress != nil {
 		bandwidthParam := cniBandwidthEntry{}
 		if ingress != nil {
-			bandwidthParam.IngressRate = int(ingress.Value() / 1000)
-			bandwidthParam.IngressBurst = int(ingress.Value() / 1000)
+			bandwidthParam.IngressRate = int(ingress.Value())
+			bandwidthParam.IngressBurst = 1600 // the default for tc
 		}
 		if egress != nil {
-			bandwidthParam.EgressRate = int(egress.Value() / 1000)
-			bandwidthParam.EgressBurst = int(egress.Value() / 1000)
+			bandwidthParam.EgressRate = int(egress.Value())
+			bandwidthParam.EgressBurst = 1600 // the default for tc
 		}
 		rt.CapabilityArgs["bandwidth"] = bandwidthParam
 	}

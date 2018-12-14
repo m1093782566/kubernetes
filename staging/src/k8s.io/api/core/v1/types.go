@@ -3664,9 +3664,17 @@ type ServiceSpec struct {
 	// of peer discovery.
 	// +optional
 	PublishNotReadyAddresses bool `json:"publishNotReadyAddresses,omitempty" protobuf:"varint,13,opt,name=publishNotReadyAddresses"`
+
 	// sessionAffinityConfig contains the configurations of session affinity.
 	// +optional
 	SessionAffinityConfig *SessionAffinityConfig `json:"sessionAffinityConfig,omitempty" protobuf:"bytes,14,opt,name=sessionAffinityConfig"`
+
+	// topologyKeys is a preference-order list of topology keys which clients should respect when accessing this Service.
+	// If any ready backends exist for index [0], they should always be chosen; only if no backends exist for index [0] should backends for index [1] be considered.
+	// If this field is specified, but all entries have no backends that match the topology of the client, the service has no backends for that client and connections should fail.
+	// The special value "" may be used to means "any node". This catch-all value, if used, only makes sense as the last value in the list.
+	// If this is not specified or empty, no topoly contraints will be applied.
+	TopologyKeys []string `json:"topologyKeys,omitempty" protobuf:"bytes,15,opt,name=topologyKeys"`
 }
 
 // ServicePort contains information on service's port.

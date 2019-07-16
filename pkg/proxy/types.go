@@ -29,6 +29,7 @@ import (
 type ProxyProvider interface {
 	config.EndpointsHandler
 	config.ServiceHandler
+	config.NodeHandler
 
 	// Sync immediately synchronizes the ProxyProvider's current state to proxy rules.
 	Sync()
@@ -75,6 +76,8 @@ type ServicePort interface {
 	NodePort() int
 	// GetOnlyNodeLocalEndpoints returns if a service has only node local endpoints
 	OnlyNodeLocalEndpoints() bool
+	// TopologyKeys returns service TopologyKeys as a string array.
+	TopologyKeys() []string
 }
 
 // Endpoint in an interface which abstracts information about an endpoint.
@@ -91,10 +94,21 @@ type Endpoint interface {
 	Port() (int, error)
 	// Equal checks if two endpoints are equal.
 	Equal(Endpoint) bool
+	// GetNodeName returns the node name which endpoint is located
+	GetNodeName() types.NodeName
 }
 
 // ServiceEndpoint is used to identify a service and one of its endpoint pair.
 type ServiceEndpoint struct {
 	Endpoint        string
 	ServicePortName ServicePortName
+}
+
+// Node in an interface which abstracts information about an node.
+type Node interface {
+	// NodeName returns node name.
+	NodeName() types.NodeName
+
+	// GetTopologyValue returns the value of sepecified topology key and true if exists, otherwise returns "" and false.
+	GetTopologyValue(string) (string, bool)
 }

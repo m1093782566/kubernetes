@@ -113,6 +113,26 @@ var (
 			Help:      "Cumulative proxy rules Service changes",
 		},
 	)
+
+	// NodeChangesPending is the number of pending node changes that
+	// have not yet been synced to the proxy.
+	NodeChangesPending = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Subsystem: kubeProxySubsystem,
+			Name:      "sync_node_changes_pending",
+			Help:      "Pending Node changes",
+		},
+	)
+
+	// NodeChangesTotal is the number of node changes that the proxy has
+	// seen.
+	NodeChangesTotal = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Subsystem: kubeProxySubsystem,
+			Name:      "sync_node_changes_total",
+			Help:      "Cumulative node changes",
+		},
+	)
 )
 
 var registerMetricsOnce sync.Once

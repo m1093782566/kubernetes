@@ -386,8 +386,10 @@ func TestServiceToServiceMap(t *testing.T) {
 type FakeProxier struct {
 	endpointsChanges *EndpointChangeTracker
 	serviceChanges   *ServiceChangeTracker
+	nodeChanges      *NodeChangeTracker
 	serviceMap       ServiceMap
 	endpointsMap     EndpointsMap
+	nodeMap          NodeMap
 	hostname         string
 }
 
@@ -397,6 +399,8 @@ func newFakeProxier() *FakeProxier {
 		serviceChanges:   NewServiceChangeTracker(nil, nil, nil),
 		endpointsMap:     make(EndpointsMap),
 		endpointsChanges: NewEndpointChangeTracker(testHostname, nil, nil, nil),
+		nodeMap:          make(NodeMap),
+		nodeChanges:      NewNodeChangeTracker(),
 	}
 }
 

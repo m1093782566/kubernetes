@@ -55,6 +55,10 @@ func (*FakeProxier) OnEndpointsAdd(endpoints *v1.Endpoints)                  {}
 func (*FakeProxier) OnEndpointsUpdate(oldEndpoints, endpoints *v1.Endpoints) {}
 func (*FakeProxier) OnEndpointsDelete(endpoints *v1.Endpoints)               {}
 func (*FakeProxier) OnEndpointsSynced()                                      {}
+func (*FakeProxier) OnNodeAdd(endpoints *v1.Node)                            {}
+func (*FakeProxier) OnNodeUpdate(oldNode, endpoints *v1.Node)                {}
+func (*FakeProxier) OnNodeDelete(endpoints *v1.Node)                         {}
+func (*FakeProxier) OnNodeSynced()                                           {}
 
 func NewHollowProxyOrDie(
 	nodeName string,

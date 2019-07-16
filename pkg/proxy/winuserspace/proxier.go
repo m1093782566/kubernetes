@@ -460,6 +460,12 @@ func (proxier *Proxier) OnEndpointsSynced() {
 	proxier.loadBalancer.OnEndpointsSynced()
 }
 
+// for service topology, not implemented
+func (*Proxier) OnNodeAdd(endpoints *v1.Node)             {}
+func (*Proxier) OnNodeUpdate(oldNode, endpoints *v1.Node) {}
+func (*Proxier) OnNodeDelete(endpoints *v1.Node)          {}
+func (*Proxier) OnNodeSynced()                            {}
+
 func sameConfig(info *serviceInfo, service *v1.Service, protocol v1.Protocol, listenPort int) bool {
 	return info.protocol == protocol && info.portal.port == listenPort && info.sessionAffinityType == service.Spec.SessionAffinity
 }

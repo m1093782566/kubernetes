@@ -450,6 +450,12 @@ const (
 	//
 	// Enables ipv6 dual stack
 	IPv6DualStack featuregate.Feature = "IPv6DualStack"
+
+	// owner: @m1093782566
+	// alpha: v1.16
+	//
+	// Enables service topology aware service routing
+	TopologyAwareServiceRouting featuregate.Feature = "TopologyAwareServiceRouting"
 )
 
 func init() {
@@ -526,6 +532,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	VolumePVCDataSource:                            {Default: false, PreRelease: featuregate.Alpha},
 	PodOverhead:                                    {Default: false, PreRelease: featuregate.Alpha},
 	IPv6DualStack:                                  {Default: false, PreRelease: featuregate.Alpha},
+	TopologyAwareServiceRouting:                    {Default: false, PreRelease: featuregate.Alpha},
 
 	// inherited features from generic apiserver, relisted here to get a conflict if it is changed
 	// unintentionally on either side:

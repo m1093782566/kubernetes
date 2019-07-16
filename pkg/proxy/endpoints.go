@@ -41,7 +41,8 @@ import (
 type BaseEndpointInfo struct {
 	Endpoint string // TODO: should be an endpointString type
 	// IsLocal indicates whether the endpoint is running in same host as kube-proxy.
-	IsLocal bool
+	IsLocal  bool
+	NodeName types.NodeName
 }
 
 var _ Endpoint = &BaseEndpointInfo{}
@@ -68,13 +69,19 @@ func (info *BaseEndpointInfo) Port() (int, error) {
 
 // Equal is part of proxy.Endpoint interface.
 func (info *BaseEndpointInfo) Equal(other Endpoint) bool {
-	return info.String() == other.String() && info.GetIsLocal() == other.GetIsLocal()
+	return info.String() == other.String() && info.GetIsLocal() == other.GetIsLocal() && info.GetNodeName() == other.GetNodeName()
 }
 
-func newBaseEndpointInfo(IP string, port int, isLocal bool) *BaseEndpointInfo {
+// GetNodeName is part of proxy.Endpoint interface.
+func (info *BaseEndpointInfo) GetNodeName() types.NodeName {
+	return info.NodeName
+}
+
+func newBaseEndpointInfo(IP string, port int, isLocal bool, nodeName types.NodeName) *BaseEndpointInfo {
 	return &BaseEndpointInfo{
 		Endpoint: net.JoinHostPort(IP, strconv.Itoa(port)),
 		IsLocal:  isLocal,
+		NodeName: nodeName,
 	}
 }
 
@@ -262,7 +269,11 @@ func (ect *EndpointChangeTracker) endpointsToEndpointsMap(endpoints *v1.Endpoint
 					continue
 				}
 				isLocal := addr.NodeName != nil && *addr.NodeName == ect.hostname
-				baseEndpointInfo := newBaseEndpointInfo(addr.IP, int(port.Port), isLocal)
+				var nodeName types.NodeName
+				if addr.NodeName != nil && *addr.NodeName != "" {
+					nodeName = types.NodeName(*addr.NodeName)
+				}
+				baseEndpointInfo := newBaseEndpointInfo(addr.IP, int(port.Port), isLocal, nodeName)
 				if ect.makeEndpointInfo != nil {
 					endpointsMap[svcPortName] = append(endpointsMap[svcPortName], ect.makeEndpointInfo(baseEndpointInfo))
 				} else {

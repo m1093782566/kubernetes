@@ -611,7 +611,7 @@ func (s *ProxyServer) Run() error {
 			options.LabelSelector = "!" + apis.LabelServiceProxyName
 		}))
 
-	// Create configs (i.e. Watches for Services and Endpoints)
+	// Create configs (i.e. Watches for Services, Endpoints and Nodes)
 	// Note: RegisterHandler() calls need to happen before creation of Sources because sources
 	// only notify on changes, and the initial update (on process start) may be lost if no handlers
 	// are registered yet.
@@ -622,6 +622,10 @@ func (s *ProxyServer) Run() error {
 	endpointsConfig := config.NewEndpointsConfig(informerFactory.Core().V1().Endpoints(), s.ConfigSyncPeriod)
 	endpointsConfig.RegisterEventHandler(s.Proxier)
 	go endpointsConfig.Run(wait.NeverStop)
+
+	nodeConfig := config.NewNodeConfig(informerFactory.Core().V1().Nodes(), s.ConfigSyncPeriod)
+	nodeConfig.RegisterEventHandler(s.Proxier)
+	go nodeConfig.Run(wait.NeverStop)
 
 	// This has to start after the calls to NewServiceConfig and NewEndpointsConfig because those
 	// functions must configure their shared informer event handlers first.

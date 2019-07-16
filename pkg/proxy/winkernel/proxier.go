@@ -851,6 +851,12 @@ func (proxier *Proxier) OnEndpointsSynced() {
 	proxier.syncProxyRules()
 }
 
+// for service topology, not implemented
+func (*Proxier) OnNodeAdd(endpoints *v1.Node)             {}
+func (*Proxier) OnNodeUpdate(oldNode, endpoints *v1.Node) {}
+func (*Proxier) OnNodeDelete(endpoints *v1.Node)          {}
+func (*Proxier) OnNodeSynced()                            {}
+
 func (proxier *Proxier) cleanupAllPolicies() {
 	for svcName, svcInfo := range proxier.serviceMap {
 		svcInfo.cleanupAllPolicies(proxier.endpointsMap[svcName])

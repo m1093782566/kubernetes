@@ -11,7 +11,9 @@ go_library(
     srcs = [
         "doc.go",
         "endpoints.go",
+        "node.go",
         "service.go",
+        "topology.go",
         "types.go",
     ],
     importpath = "k8s.io/kubernetes/pkg/proxy",
@@ -58,7 +60,9 @@ go_test(
     name = "go_default_test",
     srcs = [
         "endpoints_test.go",
+        "node_test.go",
         "service_test.go",
+        "topology_test.go",
     ],
     embed = [":go_default_library"],
     deps = [

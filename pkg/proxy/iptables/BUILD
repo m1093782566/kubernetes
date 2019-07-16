@@ -11,6 +11,7 @@ go_library(
     srcs = ["proxier.go"],
     importpath = "k8s.io/kubernetes/pkg/proxy/iptables",
     deps = [
+        "//pkg/features:go_default_library",
         "//pkg/proxy:go_default_library",
         "//pkg/proxy/healthcheck:go_default_library",
         "//pkg/proxy/metrics:go_default_library",
@@ -23,6 +24,7 @@ go_library(
         "//staging/src/k8s.io/apimachinery/pkg/types:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/version:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/wait:go_default_library",
+        "//staging/src/k8s.io/apiserver/pkg/util/feature:go_default_library",
         "//staging/src/k8s.io/client-go/tools/record:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
         "//vendor/k8s.io/utils/exec:go_default_library",
